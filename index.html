@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b1320">
+<meta name="robots" content="noindex">
+<title>SkinMap Vitrine</title>
+<!-- Schriften nicht blockierend: haengt das Netz, zeichnet die Seite mit den
+     Rueckfallschriften und tauscht spaeter. media=print laedt ohne zu blockieren,
+     onload schaltet auf alle Medien. -->
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* Layout: zwei Vollbild-Ansichten, die sich gegenseitig nicht kennen -- die Tafel
+   (nur Bild) und die Karte (nur Metadaten). Welche gilt, sagt der Hostname.
+   Gleichlauf kommt allein aus der Uhr. Bewusst einfarbig dunkel: das haengt an
+   der Wand, nicht im Browser. */
+:root{
+  color-scheme: dark;
+  --grund:#0b1320;        /* Tiefblau, Seekarte im Halbdunkel */
+  --flaeche:#121e2e;
+  --linie:#24374e;
+  --schrift:#ebe4d7;      /* warmes Pergament, nicht Weiss */
+  --leise:#8c9eb3;
+  --akzent:#d9a04a;       /* Messing: Fortschritt, Zaehler */
+  --warn:#c9663f;
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+html,body{height:100%}
+body{
+  margin:0;background:var(--grund);color:var(--schrift);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;
+}
+/* Die Abschnitte setzen ihr eigenes display:flex/grid; das wuerde das
+   hidden-Attribut sonst aushebeln. */
+[hidden]{display:none!important}
+a{color:var(--akzent)}
+:focus-visible{outline:2px solid var(--akzent);outline-offset:3px}
+
+.lauf{position:fixed;left:0;right:0;bottom:0;height:3px;background:var(--linie);z-index:5}
+.lauf i{display:block;height:100%;background:var(--akzent);width:0;transition:width .25s linear}
+.fuss{
+  position:fixed;left:0;right:0;bottom:0;z-index:6;
+  display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
+  padding:14px 20px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  font-family:var(--mono);font-size:13px;color:var(--leise);
+  font-variant-numeric:tabular-nums;pointer-events:none;
+}
+.marke{
+  font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--grund);background:var(--akzent);
+  padding:3px 8px;border-radius:3px;
+}
+
+#tafel{position:fixed;inset:0;display:grid;place-items:center;background:#070d16}
+#tafel .huelle{position:absolute;inset:0;display:grid;place-items:center}
+#tafel canvas,#tafel img{width:100%;height:100%;object-fit:contain;display:block}
+
+#karte{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:clamp(22px,4vw,52px);
+  padding-bottom:calc(clamp(22px,4vw,52px) + 46px);
+  gap:clamp(18px,3vh,34px);overflow:hidden;
+}
+.kopf{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.nr{font-family:var(--mono);font-size:clamp(13px,1.6vw,17px);color:var(--akzent);font-variant-numeric:tabular-nums}
+.diagnose{font-family:var(--serif);font-weight:400;line-height:1.02;font-size:clamp(2.4rem,7.2vw,5.6rem);margin:0;text-wrap:balance}
+.unterzeile{font-family:var(--serif);font-style:italic;color:var(--leise);font-size:clamp(1rem,2.4vw,1.7rem);margin:0}
+.felder{
+  display:grid;gap:clamp(10px,1.6vh,18px);
+  grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));
+  border-top:1px solid var(--linie);padding-top:clamp(14px,2.4vh,26px);min-width:0;
+}
+.feld{min-width:0}
+.feld dt{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--leise);margin:0 0 4px}
+.feld dd{margin:0;font-family:var(--mono);font-size:clamp(1.05rem,2.1vw,1.75rem);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.quelle{margin-top:auto;border-top:1px solid var(--linie);padding-top:14px;font-size:clamp(12px,1.4vw,15px);color:var(--leise);line-height:1.5}
+.stoerung{color:var(--warn)}
+
+#setup{position:fixed;inset:0;overflow-y:auto;display:flex;justify-content:center}
+.blatt{width:100%;max-width:62ch;padding:clamp(24px,5vw,56px) 20px 64px;display:flex;flex-direction:column;gap:26px}
+.blatt h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.1rem,6vw,3.4rem);margin:0;line-height:1.05;text-wrap:balance}
+.blatt p{margin:0;line-height:1.65;color:var(--leise);max-width:62ch}
+.blatt h2{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--schrift);margin:0}
+.schirme{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}
+.schirm{border:1px solid var(--linie);border-radius:8px;background:var(--flaeche);padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.schirm b{font-family:var(--serif);font-weight:400;font-size:1.5rem}
+.schirm span{color:var(--leise);font-size:14px;line-height:1.5}
+.adr{font-family:var(--mono);font-size:12px;color:var(--schrift);background:var(--grund);border:1px solid var(--linie);border-radius:5px;padding:8px 10px;overflow-wrap:anywhere;user-select:all}
+.knoepfe{display:flex;gap:8px;flex-wrap:wrap}
+.knopf{font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;border-radius:5px;padding:9px 14px;border:1px solid var(--linie);background:var(--flaeche);color:var(--schrift);text-decoration:none;display:inline-block}
+.knopf.voll{background:var(--akzent);color:#1a1205;border-color:var(--akzent);font-weight:600}
+.knopf:hover{border-color:var(--akzent)}
+ol{margin:0;padding-left:1.3em;color:var(--leise);line-height:1.8}
+ol b{color:var(--schrift);font-weight:600}
+.hinweis{border-left:2px solid var(--akzent);padding:2px 0 2px 14px;color:var(--leise);line-height:1.65}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section id="setup" hidden>
+  <div class="blatt">
+    <h1>SkinMap Vitrine</h1>
+    <p>Zwei Schirme, ein Takt. Der eine zeigt die Tafel, der andere die Karte dazu.
+       Jede Minute rücken beide gleichzeitig zum nächsten Eintrag.</p>
+    <div class="hinweis">Die Schirme reden nicht miteinander. Beide rechnen den
+      Eintrag aus der Uhrzeit, deshalb bleiben sie auch nach einem Neustart oder
+      einem Funkloch im Gleichschritt.</div>
+
+    <h2>Die zwei Schirme</h2>
+    <div class="schirme">
+      <div class="schirm">
+        <b>Tafel</b><span>iPad 1 — nur das Bild.</span>
+        <div class="adr">https://sm1.navarini.com</div>
+        <div class="knoepfe"><a class="knopf voll" href="#bild">Hier ansehen</a></div>
+      </div>
+      <div class="schirm">
+        <b>Karte</b><span>iPad 2 — Diagnose und Metadaten.</span>
+        <div class="adr">https://sm2.navarini.com</div>
+        <div class="knoepfe"><a class="knopf voll" href="#meta">Hier ansehen</a></div>
+      </div>
+    </div>
+    <p>Auf <b>sm1</b> und <b>sm2</b> liegt dieselbe Datei — sie erkennt am Hostnamen,
+      welche Ansicht gilt. Diese Seite hier läuft unter keinem der beiden Namen,
+      deshalb die Vorschau-Knöpfe.</p>
+
+    <h2>Auf dem iPad</h2>
+    <ol>
+      <li>Adresse in Safari öffnen, dann <b>Teilen → Zum Home-Bildschirm</b>.</li>
+      <li><b>Einstellungen → Anzeige &amp; Helligkeit → Automatische Sperre → Nie</b>.</li>
+      <li><b>Bedienungshilfen → Geführter Zugriff</b>, mit dreimal Seitentaste sperren.</li>
+    </ol>
+
+    <h2>Inhalte</h2>
+    <p id="standText">…</p>
+  </div>
+</section>
+
+<section id="tafel" hidden>
+  <div class="huelle" id="tafelHuelle"></div>
+  <div class="fuss">
+    <span class="marke" id="markeBild" hidden>Beispieldaten</span>
+    <span id="fussBild"></span>
+  </div>
+  <div class="lauf"><i id="laufBild"></i></div>
+</section>
+
+<section id="karte" hidden>
+  <div class="kopf">
+    <span class="nr" id="nrMeta"></span>
+    <span class="marke" id="markeMeta" hidden>Beispieldaten</span>
+  </div>
+  <div>
+    <h1 class="diagnose" id="diagnose"></h1>
+    <p class="unterzeile" id="unterzeile"></p>
+  </div>
+  <dl class="felder" id="felder"></dl>
+  <div class="quelle" id="quelle"></div>
+  <div class="fuss"><span></span><span id="fussMeta"></span></div>
+  <div class="lauf"><i id="laufMeta"></i></div>
+</section>
+
+<script>
+"use strict";
+
+/* ============================================================================
+   EINSTELLEN — die einzige Stelle, die du anfassen musst.
+
+   DATEN: Pfad zur Liste. Liegt sie neben dieser Datei (empfohlen), bleibt es
+   bei "./vitrine.json" — gleicher Host, also kein CORS-Thema. Eine Liste auf
+   einem fremden Host muss "Access-Control-Allow-Origin" schicken, sonst
+   blockt der Browser sie; die Bilder selbst brauchen das nicht.
+============================================================================ */
+const DATEN = "./vitrine.json";
+const TAKT_MS = 60000;            // eine Minute, an der Wanduhr ausgerichtet
+const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme mischen gleich
+const NACHLADEN_MS = 10 * 60000;  // Liste erneut holen, ohne die iPads anzufassen
+const HOLZEIT_MS = 10000;         // laenger wartet kein Wandschirm auf die Liste
+
+/* Rückfall, solange keine Liste erreichbar ist. Als Beispieldaten gekennzeichnet:
+   erfundene Angaben dürfen nicht wie Atlas-Inhalte aussehen. */
+const BEISPIELE = [
+  {id:"a1", diagnose:"Melanoma",                 art:"malignes Melanom",       fitz:"II",  region:"Rücken",        alter:64, sex:"m", datensatz:"ISIC 2020",      quelle:"ISIC Archive", lizenz:"CC-0"},
+  {id:"a2", diagnose:"Psoriasis vulgaris",       art:"Plaque-Psoriasis",       fitz:"III", region:"Unterschenkel", alter:41, sex:"w", datensatz:"Fitzpatrick17k", quelle:"Fitzpatrick 17k", lizenz:"CC BY-NC-SA"},
+  {id:"a3", diagnose:"Basal cell carcinoma",     art:"Basalzellkarzinom",      fitz:"I",   region:"Nase",          alter:78, sex:"m", datensatz:"HAM10000",       quelle:"ViDIR Wien", lizenz:"CC BY-NC"},
+  {id:"a4", diagnose:"Eczema",                   art:"atopisches Ekzem",       fitz:"V",   region:"Ellenbeuge",    alter:7,  sex:"w", datensatz:"SCIN",           quelle:"SCIN (Google)", lizenz:"CC BY 4.0"},
+  {id:"a5", diagnose:"Tinea corporis",           art:"Dermatophytose",         fitz:"VI",  region:"Rumpf",         alter:23, sex:"m", datensatz:"PASSION",        quelle:"PASSION", lizenz:"CC BY-NC"},
+  {id:"a6", diagnose:"Seborrheic keratosis",     art:"seborrhoische Keratose", fitz:"II",  region:"Schulter",      alter:69, sex:"w", datensatz:"ISIC 2019",      quelle:"ISIC Archive", lizenz:"CC-0"}
+];
+
+/* ---------------------------------------------------------------------------
+   Welche Ansicht? Der Hostname entscheidet: sm1 -> Tafel, sm2 -> Karte.
+   #bild / #meta überschreibt das (Vorschau, Test, anderer Hostname).
+--------------------------------------------------------------------------- */
+function ansicht(){
+  const h = (location.hash || "").replace(/^#/, "").toLowerCase();
+  if(h === "bild" || h === "tafel") return "bild";
+  if(h === "meta" || h === "karte") return "meta";
+  const host = location.hostname.toLowerCase();
+  if(/^sm1\b|^sm1\./.test(host)) return "bild";
+  if(/^sm2\b|^sm2\./.test(host)) return "meta";
+  return null;
+}
+
+/* --------------------------- Takt und Reihenfolge --------------------------- */
+function zufall(saat){
+  let a = saat >>> 0;
+  return function(){
+    a += 0x6D2B79F5; a >>>= 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gemischt(liste, saat){
+  const r = zufall(saat), aus = liste.slice();
+  for(let i = aus.length - 1; i > 0; i--){
+    const j = Math.floor(r() * (i + 1));
+    [aus[i], aus[j]] = [aus[j], aus[i]];
+  }
+  return aus;
+}
+const platz = (t) => Math.floor(t / TAKT_MS);
+const restMs = (t) => TAKT_MS - (t % TAKT_MS);
+
+let FOLGE = gemischt(BEISPIELE, MISCHUNG_SAAT);
+let listeGeladen = false;   // vitrine.json wurde schon einmal erfolgreich geholt
+let echteDaten = false;     // Inhalte sind keine Beispieldaten -> Marke aus
+let stoerung = "";
+
+function eintragFuer(jetzt){
+  const n = FOLGE.length || 1;
+  const i = ((platz(jetzt) % n) + n) % n;
+  return {eintrag: FOLGE[i], index: i, anzahl: n};
+}
+
+/* ------------------------------ Liste holen ------------------------------- */
+function normalisiere(rohdaten){
+  const obj = Array.isArray(rohdaten) ? {bilder: rohdaten} : (rohdaten || {});
+  const liste = Array.isArray(obj.bilder) ? obj.bilder : [];
+  const basis = (obj.basis || "").trim();
+  const eintraege = liste.map((e, i) => {
+    const bild = (e.bild || e.url || "").trim();
+    return {
+      id: String(e.id || ("e" + i)),
+      /* basis + Dateiname erlaubt eine Liste ohne lange URLs je Zeile */
+      bild: bild && basis && !/^https?:\/\//i.test(bild)
+              ? basis.replace(/\/+$/, "") + "/" + bild.replace(/^\/+/, "")
+              : bild,
+      diagnose: e.diagnose || e.condition || "ohne Beschriftung",
+      art: e.art || e.subtitel || "",
+      fitz: e.fitz || e.fitzpatrick || "",
+      region: e.region || e.body_region || "",
+      alter: (e.alter != null ? e.alter : (e.age != null ? e.age : null)),
+      sex: (e.sex || e.geschlecht || "").toString().slice(0, 1).toLowerCase(),
+      datensatz: e.datensatz || e.dataset || "",
+      quelle: e.quelle || e.source || "",
+      lizenz: e.lizenz || e.license || ""
+    };
+  }).filter(e => e.diagnose);
+  /* "beispiel": true in der Liste haelt die Marke "Beispieldaten" sichtbar,
+     solange noch erfundene Eintraege drinstehen. */
+  return {liste: eintraege, beispiel: obj.beispiel === true};
+}
+
+async function holeListe(){
+  const abbruch = new AbortController();
+  const wecker = setTimeout(() => abbruch.abort(), HOLZEIT_MS);
+  try{
+    const r = await fetch(DATEN + "?t=" + platz(Date.now()),
+                          {cache: "no-store", signal: abbruch.signal});
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const {liste, beispiel} = normalisiere(await r.json());
+    if(!liste.length) throw new Error("Liste ist leer");
+    FOLGE = gemischt(liste, MISCHUNG_SAAT);
+    listeGeladen = true;
+    echteDaten = !beispiel;
+    stoerung = "";
+  }catch(e){
+    /* Ist schon eine Liste da, bleibt sie; ein Aussetzer im Netz soll die
+       Wand nicht umschalten. */
+    if(!listeGeladen){
+      const grund = e && e.name === "AbortError" ? "Zeitablauf" : (e && e.message) || "Fehler";
+      FOLGE = gemischt(BEISPIELE, MISCHUNG_SAAT);
+      stoerung = "Liste nicht erreichbar (" + grund + ") — es laufen Beispieldaten.";
+    }
+  }finally{
+    clearTimeout(wecker);
+  }
+  for(const id of ["markeBild", "markeMeta"]){
+    const el = document.getElementById(id);
+    if(el) el.hidden = echteDaten;
+  }
+  aktuellerPlatz = null;        // nächster Tick zeichnet neu
+}
+
+/* ------------------- Platzhalter: Höhenlinien, kein Befund ------------------- */
+function saatAus(text){
+  let h = 2166136261 >>> 0;
+  for(let i = 0; i < text.length; i++){ h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function zeichneTafel(leinwand, eintrag, notiz){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const b = leinwand.clientWidth || window.innerWidth;
+  const h = leinwand.clientHeight || window.innerHeight;
+  leinwand.width = Math.max(1, Math.round(b * dpr));
+  leinwand.height = Math.max(1, Math.round(h * dpr));
+  const c = leinwand.getContext("2d");
+  if(!c) return;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, b, h);
+
+  const r = zufall(saatAus(eintrag.id));
+  const zentren = [];
+  /* Ganzzahlige Harmonische, damit der Ring bei 360 Grad wieder seinen
+     Anfang trifft und keine Sehne quer durchs Bild laeuft. */
+  for(let i = 0, n = 2 + Math.floor(r() * 2); i < n; i++){
+    zentren.push({k1: 2 + Math.floor(r() * 3), k2: 4 + Math.floor(r() * 4), p: r() * Math.PI * 2});
+  }
+  const grund = c.createRadialGradient(b * .5, h * .45, 10, b * .5, h * .5, Math.max(b, h) * .75);
+  grund.addColorStop(0, "#132032"); grund.addColorStop(1, "#070d16");
+  c.fillStyle = grund; c.fillRect(0, 0, b, h);
+
+  const ringe = 26, mass = Math.min(b, h) * 0.42;
+  for(let k = ringe; k >= 1; k--){
+    const t = k / ringe;
+    c.beginPath();
+    for(let a = 0; a <= 360; a += 3){
+      const rad = a * Math.PI / 180;
+      let d = 0;
+      for(const z of zentren){
+        d += Math.sin(rad * z.k1 + z.p) * .16 + Math.cos(rad * z.k2 - z.p) * .07;
+      }
+      const rr = mass * t * (1 + d * (1.15 - t));
+      const x = b / 2 + Math.cos(rad) * rr;
+      const y = h / 2 + Math.sin(rad) * rr * .86;
+      if(a === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.closePath();
+    c.strokeStyle = "rgba(217,160,74," + (.07 + (1 - t) * .3).toFixed(3) + ")";
+    c.lineWidth = k % 5 === 0 ? 1.6 : .7;
+    c.stroke();
+  }
+  c.font = "500 11px ui-monospace, Menlo, monospace";
+  c.fillStyle = "rgba(140,158,179,.75)";
+  c.textAlign = "center";
+  c.fillText(notiz || ("PLATZHALTER · " + eintrag.id.toUpperCase()), b / 2, h - 26);
+}
+
+/* --------------------------------- Anzeige --------------------------------- */
+let aktuellerPlatz = null, meineAnsicht = null;
+
+function zeige(id){
+  for(const el of ["setup", "tafel", "karte"].map(i => document.getElementById(i))){
+    el.hidden = (el.id !== id);
+  }
+}
+
+function tafelPlatzhalter(eintrag, notiz){
+  const huelle = document.getElementById("tafelHuelle");
+  huelle.innerHTML = "";
+  const lw = document.createElement("canvas");
+  huelle.appendChild(lw);
+  requestAnimationFrame(() => zeichneTafel(lw, eintrag, notiz));
+}
+
+function fuellTafel(eintrag){
+  if(!eintrag.bild){ tafelPlatzhalter(eintrag); return; }
+  const img = new Image();
+  img.decoding = "async";
+  img.alt = eintrag.diagnose;
+  img.onload = () => {
+    const huelle = document.getElementById("tafelHuelle");
+    huelle.innerHTML = "";
+    huelle.appendChild(img);
+  };
+  /* Ein kaputter Verweis darf auf einem Wandschirm kein Bruchbild zeigen. */
+  img.onerror = () => tafelPlatzhalter(eintrag, "BILD NICHT GELADEN · " + eintrag.id.toUpperCase());
+  img.src = eintrag.bild;
+}
+
+function naechstesVorladen(jetzt){
+  const n = FOLGE.length || 1;
+  const i = (((platz(jetzt) + 1) % n) + n) % n;
+  const e = FOLGE[i];
+  if(e && e.bild){ const v = new Image(); v.src = e.bild; }
+}
+
+function fuellKarte(eintrag, index, anzahl){
+  document.getElementById("nrMeta").textContent =
+    String(index + 1).padStart(2, "0") + " / " + String(anzahl).padStart(2, "0");
+  document.getElementById("diagnose").textContent = eintrag.diagnose;
+  document.getElementById("unterzeile").textContent = eintrag.art || "";
+  const felder = [
+    ["Fitzpatrick", eintrag.fitz || "—"],
+    ["Körperregion", eintrag.region || "—"],
+    ["Alter", eintrag.alter != null && eintrag.alter !== "" ? eintrag.alter + " J." : "—"],
+    ["Geschlecht", eintrag.sex === "w" || eintrag.sex === "f" ? "weiblich"
+                  : eintrag.sex === "m" ? "männlich" : "—"],
+    ["Datensatz", eintrag.datensatz || "—"]
+  ];
+  const dl = document.getElementById("felder");
+  dl.innerHTML = "";
+  for(const [k, v] of felder){
+    const d = document.createElement("div"); d.className = "feld";
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    d.append(dt, dd); dl.appendChild(d);
+  }
+  const q = document.getElementById("quelle");
+  q.textContent = "Quelle: " + (eintrag.quelle || "—") + " · Lizenz: " + (eintrag.lizenz || "—");
+  q.classList.remove("stoerung");
+  if(stoerung){ q.textContent = stoerung; q.classList.add("stoerung"); }
+}
+
+function tick(){
+  const jetzt = Date.now();
+  const p = platz(jetzt);
+  const {eintrag, index, anzahl} = eintragFuer(jetzt);
+  if(p !== aktuellerPlatz){
+    aktuellerPlatz = p;
+    if(meineAnsicht === "bild"){ fuellTafel(eintrag); naechstesVorladen(jetzt); }
+    else fuellKarte(eintrag, index, anzahl);
+  }
+  const rest = restMs(jetzt);
+  const balken = document.getElementById(meineAnsicht === "bild" ? "laufBild" : "laufMeta");
+  if(balken) balken.style.width = ((1 - rest / TAKT_MS) * 100).toFixed(2) + "%";
+  const fuss = document.getElementById(meineAnsicht === "bild" ? "fussBild" : "fussMeta");
+  if(fuss){
+    fuss.textContent = String(index + 1).padStart(2, "0") + " / " + String(anzahl).padStart(2, "0") +
+      "   ·   nächstes in " + String(Math.max(0, Math.ceil(rest / 1000))).padStart(2, "0") + " s";
+  }
+}
+
+let sperre = null;
+async function wachHalten(){
+  try{
+    if("wakeLock" in navigator && !sperre){
+      sperre = await navigator.wakeLock.request("screen");
+      sperre.addEventListener("release", () => { sperre = null; });
+    }
+  }catch(e){ sperre = null; }
+}
+
+let taktgeber = null, nachlader = null;
+async function starte(){
+  meineAnsicht = ansicht();
+  if(taktgeber){ clearInterval(taktgeber); taktgeber = null; }
+  if(nachlader){ clearInterval(nachlader); nachlader = null; }
+
+  await holeListe();
+
+  if(!meineAnsicht){
+    zeige("setup");
+    document.getElementById("standText").textContent = listeGeladen
+      ? FOLGE.length + " Einträge aus " + DATEN + ", davon " +
+        FOLGE.filter(e => e.bild).length + " mit Bild." +
+        (echteDaten ? "" : " Die Liste ist als Beispieldaten gekennzeichnet (\"beispiel\": true).")
+      : "Noch keine Liste erreichbar — es laufen " + BEISPIELE.length +
+        " Beispieleinträge mit Höhenlinien-Tafeln. Sobald " + DATEN +
+        " neben dieser Datei liegt, treten die echten Bilder an ihre Stelle.";
+    return;
+  }
+
+  zeige(meineAnsicht === "bild" ? "tafel" : "karte");
+  aktuellerPlatz = null;
+  tick();
+  taktgeber = setInterval(tick, 250);
+  nachlader = setInterval(holeListe, NACHLADEN_MS);
+  wachHalten();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible"){
+    if(meineAnsicht) wachHalten();
+    tick();
+  }
+});
+window.addEventListener("hashchange", starte);
+window.addEventListener("resize", () => {
+  const lw = document.querySelector("#tafelHuelle canvas");
+  if(lw) zeichneTafel(lw, eintragFuer(Date.now()).eintrag);
+});
+
+starte();
+</script>
+
+</body>
+</html>

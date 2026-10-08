@@ -1,0 +1,84 @@
+{
+  "beispiel": true,
+  "basis": "",
+  "bilder": [
+    {
+      "id": "a1",
+      "bild": "",
+      "diagnose": "Melanoma",
+      "art": "malignes Melanom",
+      "fitz": "II",
+      "region": "Rücken",
+      "alter": 64,
+      "sex": "m",
+      "datensatz": "ISIC 2020",
+      "quelle": "ISIC Archive",
+      "lizenz": "CC-0"
+    },
+    {
+      "id": "a2",
+      "bild": "",
+      "diagnose": "Psoriasis vulgaris",
+      "art": "Plaque-Psoriasis",
+      "fitz": "III",
+      "region": "Unterschenkel",
+      "alter": 41,
+      "sex": "w",
+      "datensatz": "Fitzpatrick17k",
+      "quelle": "Fitzpatrick 17k",
+      "lizenz": "CC BY-NC-SA"
+    },
+    {
+      "id": "a3",
+      "bild": "",
+      "diagnose": "Basal cell carcinoma",
+      "art": "Basalzellkarzinom",
+      "fitz": "I",
+      "region": "Nase",
+      "alter": 78,
+      "sex": "m",
+      "datensatz": "HAM10000",
+      "quelle": "ViDIR Wien",
+      "lizenz": "CC BY-NC"
+    },
+    {
+      "id": "a4",
+      "bild": "",
+      "diagnose": "Eczema",
+      "art": "atopisches Ekzem",
+      "fitz": "V",
+      "region": "Ellenbeuge",
+      "alter": 7,
+      "sex": "w",
+      "datensatz": "SCIN",
+      "quelle": "SCIN (Google)",
+      "lizenz": "CC BY 4.0"
+    },
+    {
+      "id": "a5",
+      "bild": "",
+      "diagnose": "Tinea corporis",
+      "art": "Dermatophytose",
+      "fitz": "VI",
+      "region": "Rumpf",
+      "alter": 23,
+      "sex": "m",
+      "datensatz": "PASSION",
+      "quelle": "PASSION",
+      "lizenz": "CC BY-NC"
+    },
+    {
+      "id": "a6",
+      "bild": "",
+      "diagnose": "Seborrheic keratosis",
+      "art": "seborrhoische Keratose",
+      "fitz": "II",
+      "region": "Schulter",
+      "alter": 69,
+      "sex": "w",
+      "datensatz": "ISIC 2019",
+      "quelle": "ISIC Archive",
+      "lizenz": "CC-0"
+    }
+  ]
+}
