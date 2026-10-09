@@ -25,6 +25,7 @@ for i in range(N):
     elif variante == "struct": bild = {"bytes": roh, "path": f"img_{i}.png"}
     elif variante == "blob": bild = roh
     elif variante == "b64": bild = base64.b64encode(roh).decode()
+    elif variante == "token": bild = f"ea://image/image/{i}.png"
     else: bild = f"http://127.0.0.1:{port}/bild/{i}.png"
     zeilen.append({
         "image": bild, "img_path": f"img_{i}.png",
@@ -55,6 +56,12 @@ class H(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(body)
     def do_GET(self):
         u = urlparse(self.path)
+        if u.path == "/data/metadata.json":
+            return self.antwort(200, json.dumps({"props": {"assets": {"images": {
+                "tokenPrefix": "ea://image/", "relativePath": "images"
+            }}}}).encode(), "application/json")
+        if u.path.startswith("/data/images/image/"):
+            return self.antwort(200, png(int(u.path.rsplit("/", 1)[1].split(".")[0])), "image/png")
         if u.path.startswith("/bild/"):
             return self.antwort(200, png(int(u.path[6:].split(".")[0])), "image/png")
         if u.path == "/_abfragen":

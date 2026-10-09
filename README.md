@@ -39,7 +39,8 @@ Der Atlas ist ein [Embedding Atlas](https://github.com/apple/embedding-atlas)
 - Die Tafel holt nur das Bild, die Karte nur die Metadaten. Der nächste Eintrag
   wird 25 Sekunden vor dem Wechsel geholt, damit beide pünktlich umschalten.
 - Die Bildspalte (`image`) darf eine URL, eine `data:`-URL, Base64-Text, ein
-  BLOB oder die Hugging-Face-Form `{bytes, path}` sein.
+  BLOB oder die Hugging-Face-Form `{bytes, path}` sein. Exportierte `ea://image/`-
+  Verweise werden über `props.assets.images` aus `/data/metadata.json` aufgelöst.
 - `ATLAS_FILTER` grenzt bei Bedarf ein, etwa `"modality = 'clinical'"`.
 
 ### Was die Karte zeigt
@@ -136,6 +137,9 @@ python3 -m http.server 8000
 ## Tests
 
 Die Prüfungen laufen in Chromium über Playwright und brauchen kein Netz.
+Benötigt werden das Node-Paket `playwright` mit installiertem Chromium sowie
+für den Nachbau die Python-Pakete `duckdb` und `pandas`. Ein bereits installierter
+Chromium kann über `PLAYWRIGHT_CHROMIUM_EXECUTABLE` gewählt werden.
 
 ```
 # Listenbetrieb, Atlas abgeschaltet
@@ -146,8 +150,13 @@ node tests/pruefe_atlas.js  "$PWD" /tmp/vw-wurzeln /tmp/vw-bilder  python3  test
 ```
 
 `tests/atlas_nachbau.py` baut den Abfrageendpunkt des Embedding-Atlas-Servers
-nach, mit 500 synthetischen Zeilen. Die Bildspalte gibt es in vier Formen
-(`struct`, `blob`, `b64`, `url`), alle werden geprüft.
+nach, mit 500 synthetischen Zeilen. Die Bildspalte gibt es in fünf Formen
+(`struct`, `blob`, `b64`, `url`, `token`), alle werden geprüft.
+
+Zusätzlich prüft `node tests/pruefe_live.js` die konfigurierte echte Atlas-Adresse
+im Browser: Verbindung, Bilddekodierung, Beschriftung und Gleichlauf beider
+Schirme. Dieser optionale Test braucht Netz und speichert weder Bilder noch
+Zeileninhalte. Er ersetzt keine Prüfung auf den tatsächlichen iPads.
 
 ## Regeln
 

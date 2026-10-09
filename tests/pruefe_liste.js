@@ -54,7 +54,7 @@ const anzeige = (page, id) => page.evaluate(id => getComputedStyle(document.getE
   fs.writeFileSync(path.join(bildKaputt, "vitrine.json"), JSON.stringify({basis: D.url + "/img", bilder: [{id: "kaputt1", bild: "/fehlt.png", diagnose: "Kaputt"}]}));
   fs.writeFileSync(path.join(englisch, "vitrine.json"), JSON.stringify([{id: "en1", url: "", condition: "Vitiligo", fitzpatrick: "VI", body_region: "Hand", age: 52, sex: "M", dataset: "Fitzpatrick17k", source: "F17k", license: "CC BY-NC-SA"}]));
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined});
   const ctx = await browser.newContext({viewport: {width: 1366, height: 1024}, deviceScaleFactor: 1});
 
   console.log("\n[1] Einrichtungsseite (kein Hash, fremder Host)");

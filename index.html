@@ -392,6 +392,17 @@ async function atlasStart(){
     filter: bedingungen.join(" AND "),
     felder: ATLAS_SPALTEN.filter(s => s in spalten)
   };
+  /* Exportierte Atlas-Bilder verwenden Token statt URL oder Base64. */
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ATLAS_HOLZEIT_MS);
+  try{
+    const response = await fetch(ATLAS.replace(/\/+$/, "") + "/data/metadata.json", {
+      headers: /ngrok/i.test(ATLAS) ? {"ngrok-skip-browser-warning": "1"} : {},
+      signal: controller.signal, cache: "no-store"
+    });
+    if(response.ok) atlas.images = (await response.json()).props?.assets?.images;
+  }catch(e){ /* Ältere Atlas-Versionen brauchen keine Asset-Metadaten. */ }
+  finally{ clearTimeout(timer); }
   return atlas;
 }
 
@@ -402,6 +413,17 @@ function atlasZiel(p){
 function bildUrl(v){
   if(v == null) return "";
   const s = String(v).trim();
+  const assets = atlas && atlas.images;
+  const prefix = assets?.tokenPrefix || "ea://image/";
+  if(s.startsWith(prefix)){
+    if(!assets) return "";
+    const base = assets.baseUrl || "data/" + (assets.relativePath || "images");
+    try{
+      const root = new URL(base.replace(/\/+$/, "") + "/", ATLAS.replace(/\/+$/, "") + "/");
+      const url = new URL(s.slice(prefix.length).replace(/^\/+/, ""), root);
+      return /^https?:$/.test(url.protocol) ? url.href : "";
+    }catch(e){ return ""; }
+  }
   if(/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s;
   const typ = s.startsWith("/9j/") ? "image/jpeg" : s.startsWith("iVBOR") ? "image/png"
             : s.startsWith("R0lGOD") ? "image/gif" : s.startsWith("UklGR") ? "image/webp"

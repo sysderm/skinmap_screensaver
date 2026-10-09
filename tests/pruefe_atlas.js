@@ -59,11 +59,11 @@ const diagSoll = i => i % 11 === 5 ? "ICD-Text " + i : "Befund " + i;
 function erwartet(k){ for(let i = k; i < 500; i++) if(passt(i)) return i; for(let i = 0; i < 500; i++) if(passt(i)) return i; }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined});
   const ctx = await browser.newContext({viewport: {width: 1366, height: 1024}, deviceScaleFactor: 1});
   const kinder = [];
   try{
-    const ports = {struct: 8861, blob: 8862, b64: 8863, url: 8864};
+    const ports = {struct: 8861, blob: 8862, b64: 8863, url: 8864, token: 8865};
     for(const [v, p] of Object.entries(ports)) kinder.push(await nachbau(v, p));
 
     /* feste Zeit 25 s in eine Minute hinein: weit weg vom Wechsel */
@@ -85,7 +85,8 @@ function erwartet(k){ for(let i = k; i < 500; i++) if(passt(i)) return i; for(le
       ok(img !== null, "<img> auf der Tafel");
       if(img){
         const src = await img.getAttribute("src"), nw = await img.evaluate(e => e.naturalWidth);
-        const srcOk = variante === "url" ? src === "http://127.0.0.1:" + port + "/bild/" + soll + ".png" : src.startsWith("data:image/png;base64,iVBOR");
+        const srcOk = variante === "token" ? src === "http://127.0.0.1:" + port + "/data/images/image/" + soll + ".png"
+          : variante === "url" ? src === "http://127.0.0.1:" + port + "/bild/" + soll + ".png" : src.startsWith("data:image/png;base64,iVBOR");
         ok(srcOk, "Bildquelle: " + src.slice(0, 48) + "…");
         ok(nw === 8, "Bild dekodiert (naturalWidth=" + nw + ")");
       }
