@@ -79,6 +79,13 @@ Die Liste wird alle 10 Minuten neu geholt, die Zeilenzahl des Atlas ebenso.
 Beide Hosts müssen dieselbe `index.html` und `vitrine.json` tragen, sonst
 stimmt die Reihenfolge nicht überein.
 
+Der VPS betreibt beide Domains über einen gemeinsamen nginx-Dienst. Die
+Konfiguration liegt in `deploy/`; im Dienstverzeichnis liegen diese beiden
+Konfigurationsdateien neben `public/index.html` und `public/vitrine.json`.
+`docker compose up -d` startet den Dienst im bestehenden Netzwerk
+`traefik-proxy`. Traefik stellt die HTTPS-Zertifikate aus. nginx verhindert
+veraltete Browser-Caches mit `Cache-Control: no-store`.
+
 ## vitrine.json
 
 ```json
@@ -157,6 +164,7 @@ Zusätzlich prüft `node tests/pruefe_live.js` die konfigurierte echte Atlas-Adr
 im Browser: Verbindung, Bilddekodierung, Beschriftung und Gleichlauf beider
 Schirme. Dieser optionale Test braucht Netz und speichert weder Bilder noch
 Zeileninhalte. Er ersetzt keine Prüfung auf den tatsächlichen iPads.
+Für die veröffentlichten Hosts: `node tests/pruefe_live.js https://sm1.navarini.com/ https://sm2.navarini.com/`.
 
 ## Regeln
 

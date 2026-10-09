@@ -30,12 +30,15 @@ const server = http.createServer((req, res) => {
     });
     const time = Math.floor(Date.now() / 60000) * 60000 + 10000;
     const pages = [];
-    for (const hash of ["", "#bild", "#meta"]) {
+    const local = `http://127.0.0.1:${server.address().port}/`;
+    const urls = [local, process.argv[2] || local + "#bild", process.argv[3] || local + "#meta"];
+    for (const [i, url] of urls.entries()) {
+      const hash = ["", "#bild", "#meta"][i];
       phase = "Atlas-Verbindung " + (hash || "Einrichtung");
       const page = await context.newPage();
       await page.clock.install({time});
       await page.clock.resume();
-      await page.goto(`http://127.0.0.1:${server.address().port}/${hash}`, {waitUntil: "domcontentloaded", timeout: 15000});
+      await page.goto(url, {waitUntil: "domcontentloaded", timeout: 15000});
       await page.waitForFunction(() => quelle === "atlas", null, {timeout: 45000});
       pages.push(page);
     }

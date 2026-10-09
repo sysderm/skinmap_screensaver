@@ -1,0 +1,21 @@
+services:
+  skinmap-screensaver:
+    image: nginx:alpine
+    container_name: skinmap-screensaver
+    restart: unless-stopped
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.skinmap-screensaver.entrypoints=websecure
+      - traefik.http.routers.skinmap-screensaver.rule=Host(`sm1.navarini.com`) || Host(`sm2.navarini.com`)
+      - traefik.http.routers.skinmap-screensaver.tls=true
+      - traefik.http.routers.skinmap-screensaver.tls.certresolver=letsencrypt
+      - traefik.http.routers.skinmap-screensaver.service=skinmap-screensaver
+      - traefik.http.services.skinmap-screensaver.loadbalancer.server.port=80
+networks:
+  traefik-proxy:
+    external: true

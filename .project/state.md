@@ -9,6 +9,9 @@ Stand: 2026-10-09
   55 Listen-Prüfungen. Liveprüfung in Chromium bestätigt Bilddekodierung,
   vorhandene Beschriftung und dieselbe Zeile auf beiden Schirmen.
 - Tests erlauben eine explizite Chromium-Datei über eine Umgebungsvariable.
-- Noch offen: Deployment und Safari/iPad-Prüfung, TLS-Kette der Anzeigehosts,
-  Lizenzzuordnung pro Datensatz und Absicherung des SQL-Endpunkts.
+- Deployment abgeschlossen: Beide Anzeigehosts liefern identische Dateien über
+  gültiges HTTPS. Gemeinsamer statischer Dienst, bestehendes Proxy-Netzwerk.
+  Browser-Liveprüfung über beide Domains bestanden (Bild, Beschriftung, Gleichlauf).
+- Noch offen: Safari/iPad-Prüfung, Lizenzzuordnung pro Datensatz und Absicherung
+  des SQL-Endpunkts.
 - Liveprüfung speichert keine Bilder und protokolliert keine Zeileninhalte.
