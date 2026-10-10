@@ -35,7 +35,7 @@ const abfragen = port => new Promise(res => http.get("http://127.0.0.1:" + port 
 /* Kopie der echten index.html, nur die Atlas-Adresse ersetzt */
 function wurzel(name, atlasUrl, liste){
   const dir = path.join(ROOTS, name); fs.mkdirSync(dir, {recursive: true});
-  const html = fs.readFileSync(path.join(REPO, "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(REPO, "index.html"), "utf8").replace("const OFFICE_REVIEW_REQUIRED = true;", "const OFFICE_REVIEW_REQUIRED = false;").replace("const WALK_MODE = new URLSearchParams(location.search).get(\"mode\") !== \"random\";", "const WALK_MODE = false;");
   const ersetzt = html.replace(/const ATLAS = "[^"]*";/, 'const ATLAS = "' + atlasUrl + '";');
   if(ersetzt === html && atlasUrl !== "https://skinmap.ngrok.io") throw new Error("ATLAS-Zeile nicht gefunden");
   fs.writeFileSync(path.join(dir, "index.html"), ersetzt);
@@ -99,8 +99,8 @@ function erwartet(k){ for(let i = k; i < 500; i++) if(passt(i)) return i; for(le
       ok(felder[0].t === (gerade ? "III" : "V") && felder[0].m === !gerade, "Fitzpatrick " + JSON.stringify(felder[0]));
       ok(felder[1].t === "Rumpf" && felder[1].m, "Region aus dem Modell markiert");
       ok(felder[2].t === (dritt ? (30 + soll % 50) + " J." : "42 J.") && felder[2].m === !dritt, "Alter " + JSON.stringify(felder[2]));
-      ok(felder[3].t === (gerade ? "weiblich" : "männlich") && felder[3].m === !gerade, "Geschlecht " + JSON.stringify(felder[3]));
-      ok(felder[4].t === ["isic2020", "fitzpatrick17k", "scin", "passion"][soll % 4] && !felder[4].m, "Datensatz " + felder[4].t);
+      ok(felder[3].t === (gerade ? "Weiblich" : "Männlich") && felder[3].m === !gerade, "Geschlecht " + JSON.stringify(felder[3]));
+      ok(felder[4].t === ["Isic2020", "Fitzpatrick17k", "Scin", "Passion"][soll % 4] && !felder[4].m, "Datensatz " + felder[4].t);
       const q = (await k.page.textContent("#quelle")).trim();
       ok(q === "Quelle: SkinMap-Atlas · Lizenz: —", "Quellzeile: " + q);
       const z1 = (await t.page.textContent("#fussBild")).trim().split("   ")[0], z2 = (await k.page.textContent("#nrMeta")).trim();

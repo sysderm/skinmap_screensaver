@@ -1,5 +1,29 @@
 # Projektstand
 
+## Laufende Änderung — 2026-10-10
+
+- Lokaler Entwurf: große Cockpit-Typografie, Atlas-Position und vorwärts
+  gerichtete Nachbarschaftsroute mit Rückweg; proportionale Bildvergrößerung.
+- Sichtbare Warteseite auf Nutzerwunsch auf SkinMap plus das vom Atlas
+  verwendete Logo reduziert. Sicherheitsfilter unverändert; keine sichtbaren
+  Hinweise auf Büromodus oder Genitalien. Logo lokal gebündelt.
+- Auf Wunsch nochmals deutlich vergrößert: klinischer Text skaliert anhand
+  des tatsächlichen Inhalts bis an die Bildschirmgrenze. Kleine Ränder,
+  kompakte Karte; Overflow-Prüfungen bei 1024x768, 1366x1024, 1920x1080 und
+  768x1024 sowie langer Diagnose bestanden.
+- Keine generative Bildverbesserung: Browser-Interpolation bewahrt die
+  Originaldaten, fügt aber keine neue Auflösung hinzu.
+- Bürosicherheit: leere explizite Freigabeliste; ungeprüfte Atlasbilder und
+  alle Ersatzbilder werden im strikten Modus durch eine Wartetafel ersetzt.
+- Synthetic smoke checks: keine Atlas-Bildabrufe bei leerer Liste, keine
+  ungeprüfte Darstellung, deterministische Hin/Rückroute, Textnormalisierung,
+  kein Cockpit-Overflow bei 1366x1024.
+- Noch nicht ausgerollt. Nutzerantwort zur Sicherheitsstrategie und visuelle
+  Freigabe zweier Vorschauen ausstehend (AGENTS.md-Gate).
+- Nächste Schritte: Bildfreigaben an unveränderlichen Bildinhalt binden,
+  Modus-Synchronisation verbessern, mobile/Long-Text-Prüfungen, vollständige
+  Regressionstests nach aktualisierten Großschreibungs-Erwartungen und Deploy.
+
 Stand: 2026-10-09
 
 - Ausgangspunkt: dd1d206 auf claude/intelligent-bardeen-9myr7c.

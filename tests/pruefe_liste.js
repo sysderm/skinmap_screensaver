@@ -37,7 +37,7 @@ const anzeige = (page, id) => page.evaluate(id => getComputedStyle(document.getE
 
 (async () => {
   const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
-  const html = fs.readFileSync(path.join(REPO, "index.html"), "utf8").replace(/const ATLAS = "[^"]*";/, 'const ATLAS = "";');
+  const html = fs.readFileSync(path.join(REPO, "index.html"), "utf8").replace("const OFFICE_REVIEW_REQUIRED = true;", "const OFFICE_REVIEW_REQUIRED = false;").replace("const WALK_MODE = new URLSearchParams(location.search).get(\"mode\") !== \"random\";", "const WALK_MODE = false;").replace(/const ATLAS = "[^"]*";/, 'const ATLAS = "";');
   if(!/const ATLAS = "";/.test(html)) throw new Error("ATLAS-Zeile fehlt");
   const basisDir = path.join(ROOTS, "liste"); fs.mkdirSync(basisDir, {recursive: true});
   fs.writeFileSync(path.join(basisDir, "index.html"), html); fs.copyFileSync(path.join(REPO, "vitrine.json"), path.join(basisDir, "vitrine.json"));
@@ -151,7 +151,7 @@ const anzeige = (page, id) => page.evaluate(id => getComputedStyle(document.getE
     await page.close();
     const k = await seite(ctx, C.url + "/#meta");
     const felder = await k.page.$$eval("#felder dd", l => l.map(e => e.textContent));
-    ok(felder[3] === "weiblich", "sex 'female' -> weiblich: " + JSON.stringify(felder));
+    ok(felder[3] === "Weiblich", "sex 'female' -> weiblich: " + JSON.stringify(felder));
     ok(felder[2] === "30 J.", "Alter formatiert");
     ok((await k.page.textContent("#nrMeta")).trim() === "01 / 01", "Zaehler 01 / 01");
     await k.page.close(); }
@@ -170,7 +170,7 @@ const anzeige = (page, id) => page.evaluate(id => getComputedStyle(document.getE
   { const {page, fehler} = await seite(ctx, E.url + "/#meta");
     ok((await page.textContent("#diagnose")).trim() === "Vitiligo", "condition -> Diagnose");
     const felder = await page.$$eval("#felder dd", l => l.map(e => e.textContent));
-    ok(JSON.stringify(felder) === JSON.stringify(["VI", "Hand", "52 J.", "männlich", "Fitzpatrick17k"]), "fitzpatrick/body_region/age/sex/dataset: " + JSON.stringify(felder));
+    ok(JSON.stringify(felder) === JSON.stringify(["VI", "Hand", "52 J.", "Männlich", "Fitzpatrick17k"]), "fitzpatrick/body_region/age/sex/dataset: " + JSON.stringify(felder));
     ok(/Quelle: F17k · Lizenz: CC BY-NC-SA/.test(await page.textContent("#quelle")), "source/license");
     ok(await anzeige(page, "markeMeta") === "none", "blanke Liste: keine Marke");
     ok(fehler.length === 0, "keine Skriptfehler " + JSON.stringify(fehler));

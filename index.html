@@ -99,6 +99,32 @@ a{color:var(--akzent)}
 ol{margin:0;padding-left:1.3em;color:var(--leise);line-height:1.8}
 ol b{color:var(--schrift);font-weight:600}
 .hinweis{border-left:2px solid var(--akzent);padding:2px 0 2px 14px;color:var(--leise);line-height:1.65}
+#tafel img{image-rendering:auto;max-width:none;max-height:none}
+#tafel .holding{padding:6vw;text-align:center;font-size:clamp(24px,4vw,64px);line-height:1.3}
+.skinmap-brand{display:flex;align-items:center;justify-content:center;gap:3vw;font-size:clamp(48px,12vw,220px);font-weight:600}
+.skinmap-brand img{width:clamp(100px,22vw,380px);height:auto;object-fit:contain}
+#tafel .skinmap-brand img{width:clamp(100px,22vw,380px);height:auto}
+.brand-small{display:flex;align-items:center;gap:10px;font-size:clamp(18px,2vw,30px);font-weight:600}
+.brand-small img{width:42px;height:42px;object-fit:contain}
+#karte>.skinmap-brand{display:none}
+#karte.is-holding{justify-content:center}
+#karte.is-holding>.skinmap-brand{display:flex}
+#karte.is-holding>*:not(.skinmap-brand){display:none}
+#tafel.is-holding .fuss,#tafel.is-holding .lauf{display:none}
+#karte{--cockpit-scale:1;box-sizing:border-box;padding:clamp(10px,1.2vw,22px);padding-bottom:48px;gap:1.3vh}
+.diagnose{font-family:var(--sans);font-weight:600;font-size:calc(clamp(48px,10vw,220px)*var(--cockpit-scale));line-height:1;overflow-wrap:anywhere}
+.unterzeile{font-family:var(--sans);font-style:normal;font-size:calc(clamp(22px,3vw,64px)*var(--cockpit-scale));line-height:1.15}
+.feld dt{font-size:calc(clamp(16px,1.8vw,36px)*var(--cockpit-scale));letter-spacing:.02em}
+.feld dd{font-family:var(--sans);font-size:calc(clamp(36px,5.5vw,120px)*var(--cockpit-scale));line-height:1.03}
+.felder{grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:1.5vh 1.5vw;padding-top:1.3vh}
+.quelle{margin-top:0;padding-top:8px}
+.quelle,.nr,.fuss{font-size:clamp(14px,1.5vw,24px)}
+.atlas-panel{display:grid;grid-template-columns:minmax(150px,1fr) 2fr;gap:16px;height:15vh;min-height:80px;flex:none;overflow:hidden}
+#atlasMap{width:100%;height:100%;max-height:220px;background:var(--flaeche);border-radius:8px}
+.atlas-caption{font-size:clamp(16px,1.8vw,30px);align-self:center;line-height:1.35}
+.mode-link{display:inline-block;margin-right:12px;font-size:18px}
+@media(max-width:700px){.felder{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-panel{min-height:80px}}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -152,7 +178,9 @@ ol b{color:var(--schrift);font-weight:600}
 </section>
 
 <section id="karte" hidden>
+  <div class="skinmap-brand"><img src="./assets/skinmap-logo.png" alt=""><span>SkinMap</span></div>
   <div class="kopf">
+    <span class="brand-small"><img src="./assets/skinmap-logo.png" alt="">SkinMap</span>
     <span class="nr" id="nrMeta"></span>
     <span class="marke" id="markeMeta" hidden>Beispieldaten</span>
   </div>
@@ -161,6 +189,13 @@ ol b{color:var(--schrift);font-weight:600}
     <p class="unterzeile" id="unterzeile"></p>
   </div>
   <dl class="felder" id="felder"></dl>
+  <div class="atlas-panel"><canvas id="atlasMap" aria-label="Atlas position and route"></canvas>
+    <div class="atlas-caption"><div id="atlasPosition">Atlas position</div>
+      <a class="mode-link" href="?mode=neighbour">Neighbourhood</a>
+      <a class="mode-link" href="?mode=random">Random</a>
+      <div id="modeHint"></div>
+    </div>
+  </div>
   <div class="quelle" id="quelle"></div>
   <div class="fuss"><span></span><span id="fussMeta"></span></div>
   <div class="lauf"><i id="laufMeta"></i></div>
@@ -182,6 +217,11 @@ ol b{color:var(--schrift);font-weight:600}
 ============================================================================ */
 const ATLAS = "https://skinmap.ngrok.io";
 const ATLAS_FILTER = "";          // optional, SQL-Bedingung, z. B. "modality = 'clinical'"
+const OFFICE_REVIEW_REQUIRED = true;
+const REVIEW_FILE = "./office-review.json";
+const WALK_MODE = new URLSearchParams(location.search).get("mode") !== "random";
+let reviewed = new Set();
+let route = [], mapPoints = [];
 const DATEN = "./vitrine.json";
 const TAKT_MS = 60000;            // eine Minute, an der Wanduhr ausgerichtet
 const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme wählen gleich
@@ -248,6 +288,7 @@ let echteDaten = false;     // Listeninhalte sind keine Beispieldaten
 let stoerung = "";          // Störung der Liste
 
 function eintragFuer(jetzt){
+  if(OFFICE_REVIEW_REQUIRED) return holdingEntry();
   const n = FOLGE.length || 1;
   const i = ((platz(jetzt) % n) + n) % n;
   return {eintrag: FOLGE[i], index: i, anzahl: n};
@@ -322,6 +363,62 @@ let atlasStoerung = "";
 let atlasFehler = 0;        // Zeilenfehler in Folge
 const vorrat = new Map();   // Platz -> Promise<{eintrag, index, anzahl}>
 
+function holdingEntry(){
+  return {eintrag:{id:"office-hold", holding:true, diagnose:"SkinMap", art:"", quelle:""},index:0,anzahl:0};
+}
+function displayText(value){
+  const text = String(value ?? "").normalize("NFC").replace(/_/g," ").replace(/\s+/g," ").trim();
+  const corrections = {"atopic dermatits":"Atopic dermatitis", "basal cell carcinoma":"Basal cell carcinoma"};
+  const corrected = corrections[text.toLowerCase()] || text;
+  return corrected ? corrected[0].toLocaleUpperCase("de-CH") + corrected.slice(1) : "";
+}
+function directionalRoute(points){
+  if(!points.length) return [];
+  const remaining = [...points].sort((a,b) => a.x-b.x || a.y-b.y || a._row_index-b._row_index);
+  const result = [remaining.shift()];
+  while(remaining.length){
+    const prev = result[result.length-1];
+    let candidates = remaining.filter(p => p.x >= prev.x);
+    if(!candidates.length) candidates = remaining;
+    candidates.sort((a,b) => ((a.x-prev.x)**2+(a.y-prev.y)**2)-((b.x-prev.x)**2+(b.y-prev.y)**2) || a._row_index-b._row_index);
+    const next = candidates[0]; result.push(next); remaining.splice(remaining.indexOf(next),1);
+  }
+  // Ping-pong traversal retraces the same neighbours instead of jumping at the end.
+  return result.concat(result.slice(1,-1).reverse());
+}
+function drawMap(point){
+  const canvas = document.getElementById("atlasMap"), c = canvas.getContext("2d");
+  const box = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1,box.width*devicePixelRatio); canvas.height = Math.max(1,box.height*devicePixelRatio);
+  c.scale(devicePixelRatio,devicePixelRatio); c.clearRect(0,0,box.width,box.height);
+  document.getElementById("modeHint").textContent = "Set the same mode on both screens.";
+  document.getElementById("atlasPosition").textContent = point && Number.isFinite(point.x) && Number.isFinite(point.y)
+    ? (WALK_MODE ? "Neighbourhood · " : "Random · ") + "x " + point.x.toFixed(2) + " · y " + point.y.toFixed(2)
+    : "SkinMap";
+  if(!mapPoints.length) return;
+  const xs = mapPoints.map(p=>p.x), ys = mapPoints.map(p=>p.y);
+  const minX=Math.min(...xs), minY=Math.min(...ys), dx=Math.max(...xs)-minX || 1, dy=Math.max(...ys)-minY || 1;
+  const pixel = p => [12+(box.width-24)*(p.x-minX)/dx,box.height-12-(box.height-24)*(p.y-minY)/dy];
+  c.fillStyle="#8c9eb3";
+  for(const p of mapPoints){const [x,y]=pixel(p);c.beginPath();c.arc(x,y,2,0,Math.PI*2);c.fill();}
+  if(WALK_MODE){c.strokeStyle="#d9a04a55";c.beginPath();route.forEach((p,i)=>{const [x,y]=pixel(p);if(i)c.lineTo(x,y);else c.moveTo(x,y);});c.stroke();}
+  if(point && Number.isFinite(point.x) && Number.isFinite(point.y)){const [x,y]=pixel(point);c.fillStyle="#ffd378";c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.fill();}
+}
+function fitCockpit(){
+  const card=document.getElementById("karte");
+  if(card.hidden) return;
+  // Enlarge all clinical text until the actual content reaches the viewport.
+  let low=.25, high=3;
+  for(let i=0;i<12;i++){
+    const scale=(low+high)/2;
+    card.style.setProperty("--cockpit-scale",scale);
+    const fits=card.scrollHeight<=card.clientHeight+1 &&
+      [...card.querySelectorAll("h1,p,dd,dt")].every(el=>el.scrollWidth<=el.clientWidth+1);
+    if(fits) low=scale; else high=scale;
+  }
+  card.style.setProperty("--cockpit-scale",low*.985);
+}
+
 const sqlName = (n) => '"' + String(n).replace(/"/g, '""') + '"';
 
 async function atlasSql(sql){
@@ -350,6 +447,7 @@ async function atlasSql(sql){
 }
 
 const ATLAS_SPALTEN = [
+  "projection_x", "projection_y",
   "_row_index", "condition", "icd_description",
   "fitzpatrick", "fitzpatrick_grouped", "fitzpatrick_pred", "fitzpatrick_grouped_pred",
   "body_region", "body_location", "body_region_pred",
@@ -359,6 +457,7 @@ const ATLAS_SPALTEN = [
 
 async function atlasStart(){
   if(!ATLAS) throw new Error("abgeschaltet");
+  if(OFFICE_REVIEW_REQUIRED && !reviewed.size) throw new Error("Keine visuell freigegebenen Bürobilder");
   const spalten = {};
   for(const z of await atlasSql("DESCRIBE dataset")){
     spalten[z.column_name] = String(z.column_type || "").toUpperCase();
@@ -383,6 +482,7 @@ async function atlasStart(){
   }
   const diag = ["condition", "icd_description"].filter(n => n in spalten);
   const bedingungen = [hatBild];
+  if(OFFICE_REVIEW_REQUIRED) bedingungen.push('"_row_index" IN (' + [...reviewed].join(',') + ')');
   if(diag.length) bedingungen.push("coalesce(" + diag.map(sqlName).join(", ") + ") IS NOT NULL");
   if(ATLAS_FILTER.trim()) bedingungen.push("(" + ATLAS_FILTER + ")");
   const [{n}] = await atlasSql('SELECT max("_row_index") + 1 AS n FROM dataset');
@@ -403,6 +503,11 @@ async function atlasStart(){
     if(response.ok) atlas.images = (await response.json()).props?.assets?.images;
   }catch(e){ /* Ältere Atlas-Versionen brauchen keine Asset-Metadaten. */ }
   finally{ clearTimeout(timer); }
+  if("projection_x" in spalten && "projection_y" in spalten){
+    const points = await atlasSql('SELECT _row_index, projection_x AS x, projection_y AS y FROM dataset WHERE ' + atlas.filter + ' AND isfinite(projection_x) AND isfinite(projection_y) ORDER BY _row_index LIMIT 2000');
+    mapPoints = points;
+    route = directionalRoute(points);
+  }else{ mapPoints = []; route = []; }
   return atlas;
 }
 
@@ -468,6 +573,13 @@ function ausZeile(z){
 }
 
 async function atlasEintrag(p, mitBild){
+  if(WALK_MODE && route.length){
+    const node = route[((p % route.length) + route.length) % route.length];
+    const fields = atlas.felder.map(sqlName).join(", ") + (mitBild ? ", " + atlas.bild + " AS __bild" : "");
+    const rows = await atlasSql("SELECT " + fields + " FROM dataset WHERE " + atlas.filter + " AND _row_index = " + node._row_index);
+    if(!rows.length) throw new Error("Freigegebener Eintrag fehlt");
+    return {eintrag: ausZeile(rows[0]), index: node._row_index, anzahl: atlas.n, point: node};
+  }
   const k = atlasZiel(p);
   /* Erst die Zeilennummer ohne Nutzlast, dann genau diese Zeile: so rechnet
      der Server Base64 nur für ein Bild, nicht für jede gescannte Zeile. */
@@ -480,7 +592,8 @@ async function atlasEintrag(p, mitBild){
   const auswahl = atlas.felder.map(sqlName).join(", ") + (mitBild ? ", " + atlas.bild + " AS __bild" : "");
   const zeilen = await atlasSql("SELECT " + auswahl + ' FROM dataset WHERE "_row_index" = ' + Number(treffer.r));
   if(!zeilen.length) throw new Error("Zeile verschwunden");
-  return {eintrag: ausZeile(zeilen[0]), index: Number(treffer.r), anzahl: atlas.n};
+  return {eintrag: ausZeile(zeilen[0]), index: Number(treffer.r), anzahl: atlas.n,
+    point: {x: zeilen[0].projection_x, y: zeilen[0].projection_y}};
 }
 
 function bildVorladen(src){
@@ -601,6 +714,14 @@ function tafelPlatzhalter(eintrag, notiz){
 }
 
 function fuellTafel(eintrag){
+  document.getElementById("tafel").classList.toggle("is-holding",!!eintrag.holding);
+  if(eintrag.holding){
+    const text = document.createElement("div"); text.className = "holding skinmap-brand";
+    const logo = new Image(); logo.src="./assets/skinmap-logo.png"; logo.alt="";
+    const name=document.createElement("span");name.textContent="SkinMap";
+    text.append(logo,name);
+    document.getElementById("tafelHuelle").replaceChildren(text); return;
+  }
   if(!eintrag.bild){ tafelPlatzhalter(eintrag); return; }
   const img = new Image();
   img.decoding = "async";
@@ -627,9 +748,11 @@ const zaehler = (index, anzahl) => anzahl > 99
   : String(index + 1).padStart(2, "0") + " / " + String(anzahl).padStart(2, "0");
 
 function fuellKarte(eintrag, index, anzahl){
+  document.getElementById("karte").classList.toggle("is-holding",!!eintrag.holding);
+  if(eintrag.holding) return;
   document.getElementById("nrMeta").textContent = zaehler(index, anzahl);
-  document.getElementById("diagnose").textContent = eintrag.diagnose;
-  document.getElementById("unterzeile").textContent = eintrag.art || "";
+  document.getElementById("diagnose").textContent = displayText(eintrag.diagnose);
+  document.getElementById("unterzeile").textContent = displayText(eintrag.art || "");
   const geschaetzt = eintrag.geschaetzt || [];
   const alter = eintrag.alter;
   const felder = [
@@ -645,7 +768,7 @@ function fuellKarte(eintrag, index, anzahl){
   for(const [schluessel, k, v] of felder){
     const d = document.createElement("div"); d.className = "feld";
     const dt = document.createElement("dt"); dt.textContent = k;
-    const dd = document.createElement("dd"); dd.textContent = v;
+    const dd = document.createElement("dd"); dd.textContent = displayText(v);
     if(v !== "—" && geschaetzt.includes(schluessel)){
       const m = document.createElement("span");
       m.className = "schaetzung"; m.textContent = "Modell";
@@ -659,17 +782,21 @@ function fuellKarte(eintrag, index, anzahl){
   q.classList.remove("stoerung");
   const s = aktuelleStoerung();
   if(s){ q.textContent = s; q.classList.add("stoerung"); }
+  requestAnimationFrame(fitCockpit);
 }
 
 function aktuelleStoerung(){
+  if(OFFICE_REVIEW_REQUIRED && !reviewed.size) return "";
   if(quelle === "atlas") return atlasStoerung;
   return [atlasStoerung, stoerung].filter(Boolean).join(" ");
 }
 
 function rendere(r){
+  if(OFFICE_REVIEW_REQUIRED && !r.eintrag.holding && !reviewed.has(r.index)) r = holdingEntry();
   angezeigt = r;
   if(meineAnsicht === "bild") fuellTafel(r.eintrag);
   else fuellKarte(r.eintrag, r.index, r.anzahl);
+  drawMap(r.point);
 }
 
 function zeigeAtlas(p){
@@ -732,6 +859,16 @@ async function starte(){
   if(nachlader){ clearInterval(nachlader); nachlader = null; }
   vorrat.clear(); angezeigt = null;
 
+  if(OFFICE_REVIEW_REQUIRED){
+    reviewed = new Set();
+    try{
+      const response = await fetch(REVIEW_FILE, {cache:"no-store", signal:AbortSignal.timeout(HOLZEIT_MS)});
+      if(!response.ok) throw new Error("Review fehlt");
+      const manifest = await response.json();
+      if(manifest.atlas !== ATLAS) throw new Error("Falscher Atlas");
+      reviewed = new Set((manifest.approved || []).filter(e => e.no_genitals === true && e.visually_reviewed === true && Number.isSafeInteger(e.row_index) && e.row_index >= 0).map(e => e.row_index));
+    }catch(e){ reviewed = new Set(); }
+  }
   await Promise.all([holeListe(), ATLAS ? atlasVersuchen() : null]);
 
   if(!meineAnsicht){
@@ -770,9 +907,12 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("hashchange", starte);
 window.addEventListener("resize", () => {
+  fitCockpit();
+  drawMap(angezeigt && angezeigt.point);
   const lw = document.querySelector("#tafelHuelle canvas");
   if(lw && angezeigt) zeichneTafel(lw, angezeigt.eintrag);
 });
+document.fonts.ready.then(fitCockpit);
 
 starte();
 </script>
