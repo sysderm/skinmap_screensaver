@@ -1,7 +1,7 @@
 """Nachbau des Embedding-Atlas-Abfrageendpunkts (embedding_atlas 0.10.0, server.py):
 GET /data/query?query={"type":"json","sql":...} -> cursor.execute(sql).df().to_json(orient="records"),
 Fehler -> 500 {"error": ...}, CORS Access-Control-Allow-Origin: *, Tabelle "dataset".
-Aufruf: python atlas_nachbau.py <variante> <port>   variante: struct | blob | b64 | url"""
+Aufruf: python atlas_nachbau.py <variante> <port>   variante: struct | blob | b64 | url | token | schutz"""
 import base64, io, json, sys, threading, zlib, struct as st
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -39,6 +39,20 @@ for i in range(N):
         "origin": "public", "modality": "clinical",
         "x": float(i % 20), "y": float(i // 20),
     })
+if variante == "schutz":
+    # Nur i % 5 == 4 (ausser i % 25 == 24) ist unbedenklich; alles andere muss
+    # der Schutzfilter aussortieren: Kinder, Genitalregion, Genitaldiagnose,
+    # unbekanntes Alter.
+    for i, z in enumerate(zeilen):
+        z["image"] = {"bytes": png(i), "path": f"img_{i}.png"}
+        z.update({"condition": f"Befund {i}", "body_region": None, "body_region_pred": "back",
+                  "age": 45.0, "age_pred": 44.0})
+        art = i % 5
+        if art == 0: z["age"] = 8.0
+        elif art == 1: z.update({"age": None, "age_pred": 12.0})
+        elif art == 2: z["body_region_pred"] = "genital area"
+        elif art == 3: z["condition"] = "Condyloma acuminatum"
+        elif i % 25 == 24: z.update({"age": None, "age_pred": None})
 df = pd.DataFrame(zeilen)
 df["_row_index"] = range(N)
 con = duckdb.connect(":memory:")

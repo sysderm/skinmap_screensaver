@@ -178,3 +178,21 @@ Für die veröffentlichten Hosts: `node tests/pruefe_live.js https://sm1.navarin
   über DuckDB auch Dateien auf dem Rechner hinter dem Tunnel lesen. Der Tunnel
   sollte deshalb nur so lange offen sein, wie die Wand ihn braucht, und nicht
   auf einem Rechner mit Patientendaten oder Zugangsdaten laufen.
+
+## Schutz: keine Kinder, keine Genitalien
+
+Gilt immer, auch wenn die Freigabeliste abgeschaltet ist, und greift dreifach:
+
+1. **Freigabeliste.** Im Büromodus erscheint eine Atlaszeile nur, wenn sie in
+   `office-review.json` mit `visually_reviewed`, `no_genitals` **und**
+   `no_children` auf `true` steht.
+2. **SQL-Bedingung im Atlas.** Ausgeschlossen sind Zeilen unter 18 Jahren,
+   geschätzt (`age_pred`) unter 25, Zeilen ohne lesbares Alter und Zeilen mit
+   Stichworten zu Kindern, Genitalien, Anogenitalregion, Leiste, Gesäss oder
+   Brust in Diagnose, Region, Datensatz oder Pfad (`SCHUTZ_MUSTER`).
+3. **Letzte Prüfung vor dem Anzeigen**, auch für `vitrine.json` und die
+   eingebauten Beispiele. Fällt ein Eintrag durch, zeigt die Wand die
+   SkinMap-Wartetafel.
+
+Im Zweifel fällt ein Bild heraus. Prüfung: `node tests/pruefe_schutz.js "$PWD"
+/tmp/vw-wurzeln python3 tests/atlas_nachbau.py`.
