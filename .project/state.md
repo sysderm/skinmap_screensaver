@@ -1,3 +1,15 @@
+# Public DNS cutover — 2026-10-14
+
+- Cloudflare root CNAME to the unavailable tunnel replaced with proxied A
+  187.124.4.207; missing www added as proxied A to the same server. Mail and
+  TXT records retained.
+- Anonymous public HTTPS browser test passes for root and www: live dermoscopy
+  image, hidden diagnosis initially, reveal after 15 seconds, three metadata
+  fields and correct lab link. Public API returns 404; private sm1 returns 302.
+- Origin certificate initially unavailable because ACME attempted validation
+  before the DNS cutover. Renamed only the public Traefik router to retry issuance;
+  verified origin TLS now returns 200 without certificate overrides.
+
 # Combined public display — 2026-10-14
 
 - User requested public dermatoskopie.ch: combined landscape image + diagnosis,

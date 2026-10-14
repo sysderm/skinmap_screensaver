@@ -41,11 +41,11 @@ services:
       - traefik-proxy
     labels:
       - traefik.enable=true
-      - traefik.http.routers.skinmap-combined.entrypoints=websecure
-      - traefik.http.routers.skinmap-combined.rule=Host(`dermatoskopie.ch`) || Host(`www.dermatoskopie.ch`)
-      - traefik.http.routers.skinmap-combined.tls=true
-      - traefik.http.routers.skinmap-combined.tls.certresolver=letsencrypt
-      - traefik.http.routers.skinmap-combined.service=skinmap-combined
+      - traefik.http.routers.skinmap-combined-public.entrypoints=websecure
+      - traefik.http.routers.skinmap-combined-public.rule=Host(`dermatoskopie.ch`) || Host(`www.dermatoskopie.ch`)
+      - traefik.http.routers.skinmap-combined-public.tls=true
+      - traefik.http.routers.skinmap-combined-public.tls.certresolver=letsencrypt
+      - traefik.http.routers.skinmap-combined-public.service=skinmap-combined
       - traefik.http.services.skinmap-combined.loadbalancer.server.port=80
 networks:
   traefik-proxy:
