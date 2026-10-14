@@ -1,5 +1,34 @@
 # SkinMap Vitrine
 
+## Aktueller Betrieb
+
+- Beide Domains sind über `auth.navarini.com` geschützt. Nur der bestehende
+  Vollzugang darf sie öffnen; die API ist ebenfalls geschützt.
+- Ausschließlich erhobene `modality = dermoscopy` wird verwendet. Fehlende
+  Werte, Modellschätzungen, klinische Aufnahmen und TBP sind ausgeschlossen.
+  Ersatzlisten müssen jeden Eintrag mit `modality: "dermoscopy"` kennzeichnen.
+  Ohne passende Ersatzdaten erscheint ausschließlich SkinMap mit Logo.
+- Auf Wunsch dient dieser Modalitätsfilter als Freigabekriterium; die optionale
+  manuelle Liste ist ausgeschaltet. Das ist keine Anonymisierungsgarantie.
+- sm1 bestätigt über `/api/display-ready` ein tatsächlich geladenes Bild.
+  sm2 hält Diagnose, Unterzeile und Metadaten bis 15 Sekunden nach dieser
+  Bestätigung verborgen. Ohne Bestätigung wird nichts verraten. Ein Neuladen
+  startet den Timer derselben Aufnahme nicht erneut; ein neues Bild verbirgt
+  die alte Diagnose sofort. Polling/Browserzeichnung können die Einblendung
+  geringfügig verzögern, aber die Trainingszeit nicht verkürzen.
+- Standardmäßig laufen beide Schirme durch eine deterministische
+  Nachbarschaftsroute einer Stichprobe von bis zu 2000 dermatoskopischen
+  Atlaspunkten, mit Rückweg. Die Karte zeigt diese Stichprobe und die Position.
+  `?mode=random` aktiviert Zufallsauswahl; beide Hosts müssen denselben Modus
+  verwenden. Die Route nutzt zweidimensionale Atlas-Nachbarschaft, keine
+  medizinisch definierte Ähnlichkeit.
+- Textgröße passt sich dem Bildschirm an. Bilder werden proportional
+  vergrößert; es werden keine zusätzlichen Bilddetails generiert.
+
+Training prüfen: `node tests/pruefe_training.js` und
+`python3 tests/pruefe_training_server.py`. Modalitätsprüfung:
+`node tests/pruefe_modalitaet.js`.
+
 Zwei iPads an der Wand, ein Takt. Das eine zeigt ein Bild aus dem SkinMap-Atlas
 (die **Tafel**), das andere die Beschriftung dazu (die **Karte**). Jede volle
 Minute rücken beide gleichzeitig zum nächsten Eintrag, ohne dass sie voneinander

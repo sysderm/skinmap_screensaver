@@ -53,8 +53,11 @@ const server = http.createServer((req, res) => {
     const indices = await Promise.all(pages.slice(1).map(page => page.evaluate(() => angezeigt.index)));
     assert.equal(typeof indices[0], "number");
     assert.equal(indices[0], indices[1], "Tafel und Karte zeigen dieselbe Zeile");
+    assert(await pages[1].evaluate(() => angezeigt.eintrag.modality === "dermoscopy"), "Nur Dermatoskopie");
+    phase = "Diagnosefreigabe nach Bildbestätigung";
+    await pages[2].waitForFunction(() => getComputedStyle(document.getElementById("diagnose")).visibility === "visible", null, {timeout: 45000});
     assert.equal(errors.length, 0, "Keine Browser-Laufzeitfehler");
-    console.log("Liveprüfung bestanden: Atlas erreichbar, Bild dekodiert, Diagnose vorhanden, beide Schirme synchron.");
+    console.log("Liveprüfung bestanden: Dermatoskopie, Bild dekodiert, Diagnosefreigabe und beide Schirme synchron.");
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));

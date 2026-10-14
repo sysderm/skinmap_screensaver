@@ -35,7 +35,7 @@ const abfragen = port => new Promise(res => http.get("http://127.0.0.1:" + port 
 /* Kopie der echten index.html, nur die Atlas-Adresse ersetzt */
 function wurzel(name, atlasUrl, liste){
   const dir = path.join(ROOTS, name); fs.mkdirSync(dir, {recursive: true});
-  const html = fs.readFileSync(path.join(REPO, "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(REPO, "index.html"), "utf8").replace("const OFFICE_REVIEW_REQUIRED = true;", "const OFFICE_REVIEW_REQUIRED = false;").replace("const WALK_MODE = new URLSearchParams(location.search).get(\"mode\") !== \"random\";", "const WALK_MODE = false;");
   const ersetzt = html.replace(/const ATLAS = "[^"]*";/, 'const ATLAS = "' + atlasUrl + '";');
   if(ersetzt === html && atlasUrl !== "https://skinmap.ngrok.io") throw new Error("ATLAS-Zeile nicht gefunden");
   fs.writeFileSync(path.join(dir, "index.html"), ersetzt);
@@ -99,8 +99,8 @@ function erwartet(k){ for(let i = k; i < 500; i++) if(passt(i)) return i; for(le
       ok(felder[0].t === (gerade ? "III" : "V") && felder[0].m === !gerade, "Fitzpatrick " + JSON.stringify(felder[0]));
       ok(felder[1].t === "Rumpf" && felder[1].m, "Region aus dem Modell markiert");
       ok(felder[2].t === (dritt ? (30 + soll % 50) + " J." : "42 J.") && felder[2].m === !dritt, "Alter " + JSON.stringify(felder[2]));
-      ok(felder[3].t === (gerade ? "weiblich" : "männlich") && felder[3].m === !gerade, "Geschlecht " + JSON.stringify(felder[3]));
-      ok(felder[4].t === ["isic2020", "fitzpatrick17k", "scin", "passion"][soll % 4] && !felder[4].m, "Datensatz " + felder[4].t);
+      ok(felder[3].t === (gerade ? "Weiblich" : "Männlich") && felder[3].m === !gerade, "Geschlecht " + JSON.stringify(felder[3]));
+      ok(felder[4].t === ["Isic2020", "Fitzpatrick17k", "Scin", "Passion"][soll % 4] && !felder[4].m, "Datensatz " + felder[4].t);
       const q = (await k.page.textContent("#quelle")).trim();
       ok(q === "Quelle: SkinMap-Atlas · Lizenz: —", "Quellzeile: " + q);
       const z1 = (await t.page.textContent("#fussBild")).trim().split("   ")[0], z2 = (await k.page.textContent("#nrMeta")).trim();
@@ -136,12 +136,12 @@ function erwartet(k){ for(let i = k; i < 500; i++) if(passt(i)) return i; for(le
       await page.evaluate(() => vorrat.clear());
       await page.clock.runFor(36000); await warte(600);
       let q = (await page.textContent("#quelle")).trim();
-      ok(/^Atlas: HTTP 502 — Ersatz aus der Liste\.$/.test(q), "erste Stoerung: " + q);
+      ok(await page.evaluate(() => angezeigt.eintrag.holding), "erste Störung: keine ungefilterten Ersatzbilder");
       ok(await page.evaluate(() => quelle) === "atlas", "noch nicht umgeschaltet");
       await page.clock.runFor(60000); await warte(600);
       q = (await page.textContent("#quelle")).trim();
       ok(await page.evaluate(() => quelle) === "liste", "nach zwei Fehlschlaegen auf Liste");
-      ok(/Atlas nicht erreichbar \(HTTP 502\)/.test(q), "Stoerung benannt: " + q);
+      ok(await page.evaluate(() => document.getElementById("karte").classList.contains("is-holding")), "SkinMap-Warteseite bei Ausfall");
       ok(await anzeige(page, "markeMeta") !== "none", "Beispieldaten-Marke sichtbar (Liste traegt beispiel: true)");
       kaputt = false;
       for(let i = 0; i < 3 && await page.evaluate(() => quelle) !== "atlas"; i++){ await page.clock.runFor(60000); await warte(600); }
@@ -158,8 +158,8 @@ function erwartet(k){ for(let i = k; i < 500; i++) if(passt(i)) return i; for(le
       await page.clock.runFor(1500); await warte(500);
       ok(await page.evaluate(() => quelle) === "liste", "Liste laeuft");
       const q = (await page.textContent("#quelle")).trim();
-      ok(/^Atlas nicht erreichbar \(.+\) — es läuft die Liste\.$/.test(q), "Grund sichtbar: " + q);
-      ok((await page.textContent("#nrMeta")).trim().endsWith("/ 06"), "Zaehler der Liste");
+      ok(await page.evaluate(() => angezeigt.eintrag.holding), "Keine Bildanzeige ohne dermatoskopische Ersatzdaten");
+      ok(await page.evaluate(() => document.getElementById("karte").classList.contains("is-holding")), "SkinMap statt ungeprüfter Liste");
       ok(fehler.length === 0, "keine Skriptfehler " + JSON.stringify(fehler));
       await page.close();
       const s = await oeffne(ctx, W.url + "/", T0); await s.page.clock.runFor(1500); await warte(400);

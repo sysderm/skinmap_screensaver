@@ -36,7 +36,7 @@ for i in range(N):
         "body_region": None, "body_region_pred": "Rumpf",
         "age": float(30 + i % 50) if i % 3 == 0 else None, "age_pred": 41.6,
         "gender": "female" if i % 2 == 0 else None, "gender_pred": "male",
-        "origin": "public", "modality": "clinical",
+        "origin": "public", "modality": "dermoscopy",
         "x": float(i % 20), "y": float(i // 20),
     })
 df = pd.DataFrame(zeilen)
