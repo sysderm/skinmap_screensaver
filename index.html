@@ -80,6 +80,7 @@ a{color:var(--akzent)}
 .feld dd{margin:0;font-family:var(--mono);font-size:clamp(1.05rem,2.1vw,1.75rem);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .quelle{margin-top:auto;border-top:1px solid var(--linie);padding-top:14px;font-size:clamp(12px,1.4vw,15px);color:var(--leise);line-height:1.5}
 .stoerung{color:var(--warn)}
+.schaetzung{font-family:var(--sans);font-size:.42em;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--leise);border:1px solid var(--linie);border-radius:3px;padding:2px 6px;margin-left:.7em;vertical-align:middle}
 
 #setup{position:fixed;inset:0;overflow-y:auto;display:flex;justify-content:center}
 .blatt{width:100%;max-width:62ch;padding:clamp(24px,5vw,56px) 20px 64px;display:flex;flex-direction:column;gap:26px}
@@ -98,6 +99,34 @@ a{color:var(--akzent)}
 ol{margin:0;padding-left:1.3em;color:var(--leise);line-height:1.8}
 ol b{color:var(--schrift);font-weight:600}
 .hinweis{border-left:2px solid var(--akzent);padding:2px 0 2px 14px;color:var(--leise);line-height:1.65}
+#tafel img{image-rendering:auto;max-width:none;max-height:none}
+#tafel .holding{padding:6vw;text-align:center;font-size:clamp(24px,4vw,64px);line-height:1.3}
+.skinmap-brand{display:flex;align-items:center;justify-content:center;gap:3vw;font-size:clamp(48px,12vw,220px);font-weight:600}
+.skinmap-brand img{width:clamp(100px,22vw,380px);height:auto;object-fit:contain}
+#tafel .skinmap-brand img{width:clamp(100px,22vw,380px);height:auto}
+.brand-small{display:flex;align-items:center;gap:10px;font-size:clamp(18px,2vw,30px);font-weight:600}
+.brand-small img{width:42px;height:42px;object-fit:contain}
+#karte>.skinmap-brand{display:none}
+#karte.is-holding{justify-content:center}
+#karte.is-holding>.skinmap-brand{display:flex}
+#karte.is-holding>*:not(.skinmap-brand){display:none}
+#tafel.is-holding .fuss,#tafel.is-holding .lauf{display:none}
+#karte.awaiting-diagnosis .diagnose,#karte.awaiting-diagnosis .unterzeile,
+#karte.awaiting-diagnosis .felder,#karte.awaiting-diagnosis .quelle{visibility:hidden}
+#karte{--cockpit-scale:1;box-sizing:border-box;padding:clamp(10px,1.2vw,22px);padding-bottom:48px;gap:1.3vh}
+.diagnose{font-family:var(--sans);font-weight:600;font-size:calc(clamp(48px,10vw,220px)*var(--cockpit-scale));line-height:1;overflow-wrap:anywhere}
+.unterzeile{font-family:var(--sans);font-style:normal;font-size:calc(clamp(22px,3vw,64px)*var(--cockpit-scale));line-height:1.15}
+.feld dt{font-size:calc(clamp(16px,1.8vw,36px)*var(--cockpit-scale));letter-spacing:.02em}
+.feld dd{font-family:var(--sans);font-size:calc(clamp(36px,5.5vw,120px)*var(--cockpit-scale));line-height:1.03}
+.felder{grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:1.5vh 1.5vw;padding-top:1.3vh}
+.quelle{margin-top:0;padding-top:8px}
+.quelle,.nr,.fuss{font-size:clamp(14px,1.5vw,24px)}
+.atlas-panel{display:grid;grid-template-columns:minmax(150px,1fr) 2fr;gap:16px;height:15vh;min-height:80px;flex:none;overflow:hidden}
+#atlasMap{width:100%;height:100%;max-height:220px;background:var(--flaeche);border-radius:8px}
+.atlas-caption{font-size:clamp(16px,1.8vw,30px);align-self:center;line-height:1.35}
+.mode-link{display:inline-block;margin-right:12px;font-size:18px}
+@media(max-width:700px){.felder{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-panel{min-height:80px}}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -151,7 +180,9 @@ ol b{color:var(--schrift);font-weight:600}
 </section>
 
 <section id="karte" hidden>
+  <div class="skinmap-brand"><img src="./assets/skinmap-logo.png" alt=""><span>SkinMap</span></div>
   <div class="kopf">
+    <span class="brand-small"><img src="./assets/skinmap-logo.png" alt="">SkinMap</span>
     <span class="nr" id="nrMeta"></span>
     <span class="marke" id="markeMeta" hidden>Beispieldaten</span>
   </div>
@@ -160,6 +191,13 @@ ol b{color:var(--schrift);font-weight:600}
     <p class="unterzeile" id="unterzeile"></p>
   </div>
   <dl class="felder" id="felder"></dl>
+  <div class="atlas-panel"><canvas id="atlasMap" aria-label="Atlas position and route"></canvas>
+    <div class="atlas-caption"><div id="atlasPosition">Atlas position</div>
+      <a class="mode-link" href="?mode=neighbour">Neighbourhood</a>
+      <a class="mode-link" href="?mode=random">Random</a>
+      <div id="modeHint"></div>
+    </div>
+  </div>
   <div class="quelle" id="quelle"></div>
   <div class="fuss"><span></span><span id="fussMeta"></span></div>
   <div class="lauf"><i id="laufMeta"></i></div>
@@ -171,16 +209,55 @@ ol b{color:var(--schrift);font-weight:600}
 /* ============================================================================
    EINSTELLEN — die einzige Stelle, die du anfassen musst.
 
-   DATEN: Pfad zur Liste. Liegt sie neben dieser Datei (empfohlen), bleibt es
-   bei "./vitrine.json" — gleicher Host, also kein CORS-Thema. Eine Liste auf
-   einem fremden Host muss "Access-Control-Allow-Origin" schicken, sonst
-   blockt der Browser sie; die Bilder selbst brauchen das nicht.
+   ATLAS: Adresse des SkinMap-Atlas (Embedding Atlas). Ist er erreichbar, kommt
+   jede Minute eine Zeile von dort, Bild und Beschriftung. "" schaltet ihn ab.
+   Der Atlas-Server erlaubt Abrufe von jedem Host (CORS "*"), deshalb dürfen
+   sm1/sm2 direkt fragen.
+
+   DATEN: Ersatzliste, wenn der Atlas nicht antwortet. Liegt sie neben dieser
+   Datei (empfohlen), bleibt es bei "./vitrine.json" — gleicher Host, kein CORS.
 ============================================================================ */
+const ATLAS = "https://skinmap.ngrok.io";
+const ATLAS_FILTER = "";          // optional, SQL-Bedingung, z. B. "modality = 'clinical'"
+const DERMOSCOPY_ONLY = true;
+const DIAGNOSIS_DELAY_MS = 15000;
+const OFFICE_REVIEW_REQUIRED = false;
+const REVIEW_FILE = "./office-review.json";
+const WALK_MODE = new URLSearchParams(location.search).get("mode") !== "random";
+let reviewed = new Set();
+let route = [], mapPoints = [];
 const DATEN = "./vitrine.json";
 const TAKT_MS = 60000;            // eine Minute, an der Wanduhr ausgerichtet
-const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme mischen gleich
+const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme wählen gleich
 const NACHLADEN_MS = 10 * 60000;  // Liste erneut holen, ohne die iPads anzufassen
-const HOLZEIT_MS = 10000;         // laenger wartet kein Wandschirm auf die Liste
+const HOLZEIT_MS = 10000;         // länger wartet kein Wandschirm auf die Liste
+const ATLAS_HOLZEIT_MS = 15000;   // je Abfrage an den Atlas
+const VORLAUF_MS = 25000;         // so lange vor dem Wechsel den nächsten Eintrag holen
+
+/* SCHUTZ — keine Kinder, keine Genitalien. Gilt immer, auch ohne Freigabeliste,
+   dreifach: als SQL-Bedingung im Atlas, als Prüfung jedes Listeneintrags und
+   als letzte Prüfung vor dem Anzeigen. Im Zweifel fällt ein Bild heraus:
+   unbekanntes Alter, nicht lesbares Alter und jedes Stichwort unten genügen.
+   Ein geschätztes Alter (Modell) braucht mehr Abstand zur Grenze. */
+const ADDITIONAL_PROTECTION = false; // Nutzerfreigabe: Dermatoskopie ist das Kriterium.
+const ERWACHSEN_AB = 18;
+const ERWACHSEN_AB_MODELL = 25;
+const SCHUTZ_MUSTER =
+  /* Kinder */
+  "infan|neonat|newborn|child|pediatr|paediatr|juvenil|baby|babies|toddler|" +
+  "diaper|nappy|napkin|adolescen|teen|kinder|kindes|säugling|saeugling|kleinkind|jugendlich|" +
+  /* Genitalien, Anogenitalregion, Gesäss, Brust */
+  "genit|penis|penile|scrot|vulv|vagin|labia|perine|perian|\\banal\\b|\\banus\\b|groin|inguin|" +
+  "pubic|pubis|glans|balan|foreskin|prepuc|testic|testis|testes|buttock|glute|natal cleft|" +
+  "breast|nipple|areola|leiste|gesäß|gesaess|brust|scham|" +
+  /* Diagnosen, die praktisch nur genital vorkommen */
+  "condylom|syphil|chancr|lichen sclerosus|gonorr|sexually|\\bstd\\b|\\bsti\\b|\\bhpv\\b";
+const SCHUTZ_RE = new RegExp(SCHUTZ_MUSTER, "i");
+const SCHUTZ_TEXTSPALTEN = [
+  "condition", "icd_description", "icd_block_desc", "icd_category_desc",
+  "body_region", "body_location", "body_region_pred",
+  "dataset", "text", "text_short", "img_path"
+];
 
 /* Rückfall, solange keine Liste erreichbar ist. Als Beispieldaten gekennzeichnet:
    erfundene Angaben dürfen nicht wie Atlas-Inhalte aussehen. */
@@ -188,7 +265,7 @@ const BEISPIELE = [
   {id:"a1", diagnose:"Melanoma",                 art:"malignes Melanom",       fitz:"II",  region:"Rücken",        alter:64, sex:"m", datensatz:"ISIC 2020",      quelle:"ISIC Archive", lizenz:"CC-0"},
   {id:"a2", diagnose:"Psoriasis vulgaris",       art:"Plaque-Psoriasis",       fitz:"III", region:"Unterschenkel", alter:41, sex:"w", datensatz:"Fitzpatrick17k", quelle:"Fitzpatrick 17k", lizenz:"CC BY-NC-SA"},
   {id:"a3", diagnose:"Basal cell carcinoma",     art:"Basalzellkarzinom",      fitz:"I",   region:"Nase",          alter:78, sex:"m", datensatz:"HAM10000",       quelle:"ViDIR Wien", lizenz:"CC BY-NC"},
-  {id:"a4", diagnose:"Eczema",                   art:"atopisches Ekzem",       fitz:"V",   region:"Ellenbeuge",    alter:7,  sex:"w", datensatz:"SCIN",           quelle:"SCIN (Google)", lizenz:"CC BY 4.0"},
+  {id:"a4", diagnose:"Eczema",                   art:"atopisches Ekzem",       fitz:"V",   region:"Ellenbeuge",    alter:34, sex:"w", datensatz:"SCIN",           quelle:"SCIN (Google)", lizenz:"CC BY 4.0"},
   {id:"a5", diagnose:"Tinea corporis",           art:"Dermatophytose",         fitz:"VI",  region:"Rumpf",         alter:23, sex:"m", datensatz:"PASSION",        quelle:"PASSION", lizenz:"CC BY-NC"},
   {id:"a6", diagnose:"Seborrheic keratosis",     art:"seborrhoische Keratose", fitz:"II",  region:"Schulter",      alter:69, sex:"w", datensatz:"ISIC 2019",      quelle:"ISIC Archive", lizenz:"CC-0"}
 ];
@@ -218,6 +295,11 @@ function zufall(saat){
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+function saatAus(text){
+  let h = 2166136261 >>> 0;
+  for(let i = 0; i < text.length; i++){ h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
 function gemischt(liste, saat){
   const r = zufall(saat), aus = liste.slice();
   for(let i = aus.length - 1; i > 0; i--){
@@ -229,12 +311,14 @@ function gemischt(liste, saat){
 const platz = (t) => Math.floor(t / TAKT_MS);
 const restMs = (t) => TAKT_MS - (t % TAKT_MS);
 
-let FOLGE = gemischt(BEISPIELE, MISCHUNG_SAAT);
+let FOLGE = gemischt(BEISPIELE.filter(unbedenklich), MISCHUNG_SAAT);
 let listeGeladen = false;   // vitrine.json wurde schon einmal erfolgreich geholt
-let echteDaten = false;     // Inhalte sind keine Beispieldaten -> Marke aus
-let stoerung = "";
+let echteDaten = false;     // Listeninhalte sind keine Beispieldaten
+let stoerung = "";          // Störung der Liste
 
 function eintragFuer(jetzt){
+  if(OFFICE_REVIEW_REQUIRED) return holdingEntry();
+  if(DERMOSCOPY_ONLY && !FOLGE.some(e => e.modality === "dermoscopy")) return holdingEntry();
   const n = FOLGE.length || 1;
   const i = ((platz(jetzt) % n) + n) % n;
   return {eintrag: FOLGE[i], index: i, anzahl: n};
@@ -261,11 +345,12 @@ function normalisiere(rohdaten){
       sex: (e.sex || e.geschlecht || "").toString().slice(0, 1).toLowerCase(),
       datensatz: e.datensatz || e.dataset || "",
       quelle: e.quelle || e.source || "",
-      lizenz: e.lizenz || e.license || ""
+      lizenz: e.lizenz || e.license || "",
+      modality: String(e.modality || "").trim().toLowerCase()
     };
-  }).filter(e => e.diagnose);
-  /* "beispiel": true in der Liste haelt die Marke "Beispieldaten" sichtbar,
-     solange noch erfundene Eintraege drinstehen. */
+  }).filter(e => e.diagnose && unbedenklich(e) && (!DERMOSCOPY_ONLY || e.modality === "dermoscopy"));
+  /* "beispiel": true in der Liste hält die Marke "Beispieldaten" sichtbar,
+     solange noch erfundene Einträge drinstehen. */
   return {liste: eintraege, beispiel: obj.beispiel === true};
 }
 
@@ -287,25 +372,340 @@ async function holeListe(){
        Wand nicht umschalten. */
     if(!listeGeladen){
       const grund = e && e.name === "AbortError" ? "Zeitablauf" : (e && e.message) || "Fehler";
-      FOLGE = gemischt(BEISPIELE, MISCHUNG_SAAT);
+      FOLGE = gemischt(BEISPIELE.filter(unbedenklich), MISCHUNG_SAAT);
       stoerung = "Liste nicht erreichbar (" + grund + ") — es laufen Beispieldaten.";
     }
   }finally{
     clearTimeout(wecker);
   }
-  for(const id of ["markeBild", "markeMeta"]){
-    const el = document.getElementById(id);
-    if(el) el.hidden = echteDaten;
+  markeSetzen();
+  if(quelle === "liste") aktuellerPlatz = null;   // nächster Tick zeichnet neu
+}
+
+/* ---------------------------------------------------------------------------
+   SkinMap-Atlas. Der Embedding-Atlas-Server beantwortet SQL auf der Tabelle
+   "dataset" unter GET /data/query. Beide Schirme leiten aus der Minute dieselbe
+   Zielzeile ab und nehmen die erste brauchbare Zeile ab dort — gleiche Daten,
+   gleiche Wahl, ohne dass die Geräte voneinander wissen.
+--------------------------------------------------------------------------- */
+let quelle = "liste";       // "atlas" | "liste"
+let atlas = null;           // {n, bild, filter, felder, bildTyp, url}
+let atlasStoerung = "";
+let atlasFehler = 0;        // Zeilenfehler in Folge
+const vorrat = new Map();   // Platz -> Promise<{eintrag, index, anzahl}>
+
+/* Letzte Prüfung je Eintrag, egal woher er kommt. */
+function unbedenklich(e){
+  if(!ADDITIONAL_PROTECTION) return true;
+  if(!e) return false;
+  if(e.holding) return true;
+  const text = [e.diagnose, e.art, e.region, e.datensatz, e.id].filter(v => v != null).join(" ");
+  if(SCHUTZ_RE.test(text)) return false;
+  if(e.alter == null || e.alter === "" || /</.test(String(e.alter))) return false;
+  const m = String(e.alter).match(/[0-9]+(\.[0-9]+)?/);
+  if(!m) return false;
+  const geschaetzt = (e.geschaetzt || []).includes("alter");
+  return Number(m[0]) >= (geschaetzt ? ERWACHSEN_AB_MODELL : ERWACHSEN_AB);
+}
+
+/* Dieselbe Regel als SQL-Bedingung für den Atlas. Fehlt jede Altersspalte,
+   ist die Bedingung FALSE: lieber nichts zeigen als ungeprüft. */
+function schutzBedingung(spalten){
+  if(!ADDITIONAL_PROTECTION) return "TRUE";
+  const zahl = c => "TRY_CAST(regexp_extract(CAST(" + sqlName(c) +
+    " AS VARCHAR), '[0-9]+(\\.[0-9]+)?', 0) AS DOUBLE)";
+  const alter = [["age", ERWACHSEN_AB], ["age_pred", ERWACHSEN_AB_MODELL]].filter(([c]) => c in spalten);
+  if(!alter.length) return "FALSE";
+  const teile = alter.map(([c, ab]) => "(" + sqlName(c) + " IS NULL OR (" + zahl(c) + " >= " + ab +
+    " AND CAST(" + sqlName(c) + " AS VARCHAR) NOT LIKE '%<%'))");
+  teile.push("(" + alter.map(([c]) => zahl(c) + " IS NOT NULL").join(" OR ") + ")");
+  const text = SCHUTZ_TEXTSPALTEN.filter(c => c in spalten);
+  if(text.length) teile.push("NOT regexp_matches(lower(concat_ws(' ', " +
+    text.map(c => "CAST(" + sqlName(c) + " AS VARCHAR)").join(", ") + ")), '" + SCHUTZ_MUSTER + "')");
+  return "(" + teile.join(" AND ") + ")";
+}
+
+function holdingEntry(){
+  return {eintrag:{id:"office-hold", holding:true, diagnose:"SkinMap", art:"", quelle:""},index:0,anzahl:0};
+}
+function displayText(value){
+  const text = String(value ?? "").normalize("NFC").replace(/_/g," ").replace(/\s+/g," ").trim();
+  const corrections = {"atopic dermatits":"Atopic dermatitis", "basal cell carcinoma":"Basal cell carcinoma"};
+  const corrected = corrections[text.toLowerCase()] || text;
+  return corrected ? corrected[0].toLocaleUpperCase("de-CH") + corrected.slice(1) : "";
+}
+function directionalRoute(points){
+  if(!points.length) return [];
+  const remaining = [...points].sort((a,b) => a.x-b.x || a.y-b.y || a._row_index-b._row_index);
+  const result = [remaining.shift()];
+  while(remaining.length){
+    const prev = result[result.length-1];
+    let candidates = remaining.filter(p => p.x >= prev.x);
+    if(!candidates.length) candidates = remaining;
+    candidates.sort((a,b) => ((a.x-prev.x)**2+(a.y-prev.y)**2)-((b.x-prev.x)**2+(b.y-prev.y)**2) || a._row_index-b._row_index);
+    const next = candidates[0]; result.push(next); remaining.splice(remaining.indexOf(next),1);
   }
-  aktuellerPlatz = null;        // nächster Tick zeichnet neu
+  // Ping-pong traversal retraces the same neighbours instead of jumping at the end.
+  return result.concat(result.slice(1,-1).reverse());
+}
+function drawMap(point){
+  const canvas = document.getElementById("atlasMap"), c = canvas.getContext("2d");
+  const box = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1,box.width*devicePixelRatio); canvas.height = Math.max(1,box.height*devicePixelRatio);
+  c.scale(devicePixelRatio,devicePixelRatio); c.clearRect(0,0,box.width,box.height);
+  document.getElementById("modeHint").textContent = "Set the same mode on both screens.";
+  document.getElementById("atlasPosition").textContent = point && Number.isFinite(point.x) && Number.isFinite(point.y)
+    ? (WALK_MODE ? "Neighbourhood · " : "Random · ") + "x " + point.x.toFixed(2) + " · y " + point.y.toFixed(2)
+    : "SkinMap";
+  if(!mapPoints.length) return;
+  const xs = mapPoints.map(p=>p.x), ys = mapPoints.map(p=>p.y);
+  const minX=Math.min(...xs), minY=Math.min(...ys), dx=Math.max(...xs)-minX || 1, dy=Math.max(...ys)-minY || 1;
+  const pixel = p => [12+(box.width-24)*(p.x-minX)/dx,box.height-12-(box.height-24)*(p.y-minY)/dy];
+  c.fillStyle="#8c9eb3";
+  for(const p of mapPoints){const [x,y]=pixel(p);c.beginPath();c.arc(x,y,2,0,Math.PI*2);c.fill();}
+  if(WALK_MODE){c.strokeStyle="#d9a04a55";c.beginPath();route.forEach((p,i)=>{const [x,y]=pixel(p);if(i)c.lineTo(x,y);else c.moveTo(x,y);});c.stroke();}
+  if(point && Number.isFinite(point.x) && Number.isFinite(point.y)){const [x,y]=pixel(point);c.fillStyle="#ffd378";c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.fill();}
+}
+function fitCockpit(){
+  const card=document.getElementById("karte");
+  if(card.hidden) return;
+  // Enlarge all clinical text until the actual content reaches the viewport.
+  let low=.25, high=3;
+  for(let i=0;i<12;i++){
+    const scale=(low+high)/2;
+    card.style.setProperty("--cockpit-scale",scale);
+    const fits=card.scrollHeight<=card.clientHeight+1 &&
+      [...card.querySelectorAll("h1,p,dd,dt")].every(el=>el.scrollWidth<=el.clientWidth+1);
+    if(fits) low=scale; else high=scale;
+  }
+  card.style.setProperty("--cockpit-scale",low*.985);
+}
+
+const sqlName = (n) => '"' + String(n).replace(/"/g, '""') + '"';
+
+async function atlasSql(sql){
+  const abbruch = new AbortController();
+  const wecker = setTimeout(() => abbruch.abort(), ATLAS_HOLZEIT_MS);
+  try{
+    /* ngrok schiebt Browsern sonst eine Warnseite vor die Antwort. */
+    const kopf = /ngrok/i.test(ATLAS) ? {"ngrok-skip-browser-warning": "1"} : {};
+    const r = await fetch(ATLAS.replace(/\/+$/, "") + "/data/query?query=" +
+                          encodeURIComponent(JSON.stringify({type: "json", sql})),
+                          {cache: "no-store", headers: kopf, signal: abbruch.signal});
+    const text = await r.text();
+    let daten;
+    try{ daten = JSON.parse(text); }
+    catch(e){ throw new Error(r.ok ? "keine JSON-Antwort" : "HTTP " + r.status); }
+    if(daten && !Array.isArray(daten) && daten.error) throw new Error(String(daten.error).slice(0, 140));
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    if(!Array.isArray(daten)) throw new Error("unerwartete Antwort");
+    return daten;
+  }catch(e){
+    if(e && e.name === "AbortError") throw new Error("Zeitablauf");
+    throw e;
+  }finally{
+    clearTimeout(wecker);
+  }
+}
+
+const ATLAS_SPALTEN = [
+  "modality",
+  "projection_x", "projection_y",
+  "_row_index", "condition", "icd_description",
+  "fitzpatrick", "fitzpatrick_grouped", "fitzpatrick_pred", "fitzpatrick_grouped_pred",
+  "body_region", "body_location", "body_region_pred",
+  "age", "age_pred", "gender", "sex", "gender_pred",
+  "dataset", "license", "lizenz"
+];
+
+async function atlasStart(){
+  if(!ATLAS) throw new Error("abgeschaltet");
+  if(OFFICE_REVIEW_REQUIRED && !reviewed.size) throw new Error("Keine visuell freigegebenen Bürobilder");
+  const spalten = {};
+  for(const z of await atlasSql("DESCRIBE dataset")){
+    spalten[z.column_name] = String(z.column_type || "").toUpperCase();
+  }
+  if(!("_row_index" in spalten)) throw new Error("Spalte _row_index fehlt");
+  if(DERMOSCOPY_ONLY && !("modality" in spalten)) throw new Error("Modalität fehlt");
+  const bildSpalte = ["image", "bild", "img"].find(n => n in spalten);
+  if(!bildSpalte) throw new Error("keine Bildspalte");
+  const typ = spalten[bildSpalte];
+  let bild, hatBild;
+  if(typ.startsWith("STRUCT")){
+    /* Hugging-Face-Form {bytes, path}: die Bytes kommen als Base64 */
+    if(!/\bBYTES\b/.test(typ)) throw new Error("Bildspalte ohne bytes-Feld");
+    const feld = "struct_extract(" + sqlName(bildSpalte) + ", 'bytes')";
+    bild = "base64(" + feld + ")";
+    hatBild = feld + " IS NOT NULL";
+  }else if(typ === "BLOB"){
+    bild = "base64(" + sqlName(bildSpalte) + ")";
+    hatBild = sqlName(bildSpalte) + " IS NOT NULL";
+  }else{
+    bild = sqlName(bildSpalte);   // URL, data:-URL oder Base64 als Text
+    hatBild = "coalesce(" + sqlName(bildSpalte) + ", '') <> ''";
+  }
+  const diag = ["condition", "icd_description"].filter(n => n in spalten);
+  const bedingungen = [hatBild];
+  if(DERMOSCOPY_ONLY) bedingungen.push("lower(trim(\"modality\")) = 'dermoscopy'");
+  if(OFFICE_REVIEW_REQUIRED) bedingungen.push('"_row_index" IN (' + [...reviewed].join(',') + ')');
+  if(diag.length) bedingungen.push("coalesce(" + diag.map(sqlName).join(", ") + ") IS NOT NULL");
+  bedingungen.push(schutzBedingung(spalten));
+  if(ATLAS_FILTER.trim()) bedingungen.push("(" + ATLAS_FILTER + ")");
+  const [{n}] = await atlasSql('SELECT max("_row_index") + 1 AS n FROM dataset');
+  if(!(n >= 1)) throw new Error("Atlas ist leer");
+  atlas = {
+    n: Number(n), bild, bildTyp: typ, url: ATLAS,
+    filter: bedingungen.join(" AND "),
+    felder: ATLAS_SPALTEN.filter(s => s in spalten)
+  };
+  /* Exportierte Atlas-Bilder verwenden Token statt URL oder Base64. */
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ATLAS_HOLZEIT_MS);
+  try{
+    const response = await fetch(ATLAS.replace(/\/+$/, "") + "/data/metadata.json", {
+      headers: /ngrok/i.test(ATLAS) ? {"ngrok-skip-browser-warning": "1"} : {},
+      signal: controller.signal, cache: "no-store"
+    });
+    if(response.ok) atlas.images = (await response.json()).props?.assets?.images;
+  }catch(e){ /* Ältere Atlas-Versionen brauchen keine Asset-Metadaten. */ }
+  finally{ clearTimeout(timer); }
+  if("projection_x" in spalten && "projection_y" in spalten){
+    const points = await atlasSql('SELECT _row_index, projection_x AS x, projection_y AS y FROM dataset WHERE ' + atlas.filter + ' AND isfinite(projection_x) AND isfinite(projection_y) ORDER BY hash(_row_index), _row_index LIMIT 2000');
+    mapPoints = points;
+    route = directionalRoute(points);
+  }else{ mapPoints = []; route = []; }
+  return atlas;
+}
+
+function atlasZiel(p){
+  return Math.floor(zufall(saatAus(MISCHUNG_SAAT + ":" + p))() * atlas.n);
+}
+
+function bildUrl(v){
+  if(v == null) return "";
+  const s = String(v).trim();
+  const assets = atlas && atlas.images;
+  const prefix = assets?.tokenPrefix || "ea://image/";
+  if(s.startsWith(prefix)){
+    if(!assets) return "";
+    const base = assets.baseUrl || "data/" + (assets.relativePath || "images");
+    try{
+      const root = new URL(base.replace(/\/+$/, "") + "/", ATLAS.replace(/\/+$/, "") + "/");
+      const url = new URL(s.slice(prefix.length).replace(/^\/+/, ""), root);
+      return /^https?:$/.test(url.protocol) ? url.href : "";
+    }catch(e){ return ""; }
+  }
+  if(/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s;
+  const typ = s.startsWith("/9j/") ? "image/jpeg" : s.startsWith("iVBOR") ? "image/png"
+            : s.startsWith("R0lGOD") ? "image/gif" : s.startsWith("UklGR") ? "image/webp"
+            : s.startsWith("Qk") ? "image/bmp" : "";
+  return typ && /^[A-Za-z0-9+/=\s]+$/.test(s.slice(0, 256))
+    ? "data:" + typ + ";base64," + s.replace(/\s+/g, "") : "";
+}
+
+const ROEMISCH = ["", "I", "II", "III", "IV", "V", "VI"];
+function ausZeile(z){
+  const wert = (v) => (v == null || (typeof v === "string" && !v.trim()) ||
+                       (typeof v === "number" && !isFinite(v))) ? null : v;
+  const erst = (...namen) => { for(const n of namen){ const v = wert(z[n]); if(v !== null) return v; } return null; };
+  const geschaetzt = [];
+  /* Gemessenes vor Geschätztem; Modellwerte werden auf der Karte so markiert. */
+  const mitModell = (feld, wahr, modell) => {
+    const w = erst(...wahr); if(w !== null) return w;
+    const m = erst(...modell); if(m !== null) geschaetzt.push(feld);
+    return m;
+  };
+  const diag = erst("condition", "icd_description");
+  const icd = erst("icd_description");
+  let fitz = mitModell("fitz", ["fitzpatrick", "fitzpatrick_grouped"], ["fitzpatrick_pred", "fitzpatrick_grouped_pred"]);
+  if(fitz !== null && /^[1-6](\.0)?$/.test(String(fitz))) fitz = ROEMISCH[parseInt(fitz, 10)];
+  let alter = mitModell("alter", ["age"], ["age_pred"]);
+  if(alter !== null && !isNaN(Number(alter))) alter = Math.round(Number(alter));
+  const sex = mitModell("sex", ["gender", "sex"], ["gender_pred"]);
+  return {
+    id: "r" + z._row_index,
+    modality: String(z.modality || "").trim().toLowerCase(),
+    bild: bildUrl(z.__bild),
+    diagnose: String(diag != null ? diag : "ohne Beschriftung"),
+    art: icd != null && icd !== diag ? String(icd) : "",
+    fitz: fitz != null ? String(fitz) : "",
+    region: String(mitModell("region", ["body_region", "body_location"], ["body_region_pred"]) ?? ""),
+    alter,
+    sex: sex != null ? String(sex).slice(0, 1).toLowerCase() : "",
+    datensatz: String(erst("dataset") ?? ""),
+    quelle: "SkinMap-Atlas",
+    lizenz: String(erst("license", "lizenz") ?? ""),
+    geschaetzt
+  };
+}
+
+async function atlasEintrag(p, mitBild){
+  if(WALK_MODE && route.length){
+    const node = route[((p % route.length) + route.length) % route.length];
+    const fields = atlas.felder.map(sqlName).join(", ") + (mitBild ? ", " + atlas.bild + " AS __bild" : "");
+    const rows = await atlasSql("SELECT " + fields + " FROM dataset WHERE " + atlas.filter + " AND _row_index = " + node._row_index);
+    if(!rows.length) throw new Error("Freigegebener Eintrag fehlt");
+    return {eintrag: ausZeile(rows[0]), index: node._row_index, anzahl: atlas.n, point: node};
+  }
+  const k = atlasZiel(p);
+  /* Erst die Zeilennummer ohne Nutzlast, dann genau diese Zeile: so rechnet
+     der Server Base64 nur für ein Bild, nicht für jede gescannte Zeile. */
+  const erste = async (ab) => (await atlasSql(
+    'SELECT min("_row_index") AS r FROM dataset WHERE "_row_index" >= ' + ab +
+    " AND " + atlas.filter))[0];
+  let treffer = await erste(k);
+  if((!treffer || treffer.r == null) && k > 0) treffer = await erste(0);
+  if(!treffer || treffer.r == null) throw new Error("keine passende Zeile");
+  const auswahl = atlas.felder.map(sqlName).join(", ") + (mitBild ? ", " + atlas.bild + " AS __bild" : "");
+  const zeilen = await atlasSql("SELECT " + auswahl + ' FROM dataset WHERE "_row_index" = ' + Number(treffer.r));
+  if(!zeilen.length) throw new Error("Zeile verschwunden");
+  return {eintrag: ausZeile(zeilen[0]), index: Number(treffer.r), anzahl: atlas.n,
+    point: {x: zeilen[0].projection_x, y: zeilen[0].projection_y}};
+}
+
+function bildVorladen(src){
+  return new Promise(fertig => {
+    const v = new Image();
+    const w = setTimeout(fertig, ATLAS_HOLZEIT_MS);
+    v.onload = v.onerror = () => { clearTimeout(w); fertig(); };
+    v.src = src;
+  });
+}
+
+function holeFuer(p){
+  if(!vorrat.has(p)){
+    const mitBild = meineAnsicht === "bild";
+    const auftrag = atlasEintrag(p, mitBild).then(async r => {
+      if(mitBild && r.eintrag.bild) await bildVorladen(r.eintrag.bild);
+      return r;
+    });
+    auftrag.catch(() => vorrat.delete(p));   // beim nächsten Versuch neu holen
+    vorrat.set(p, auftrag);
+    for(const alt of [...vorrat.keys()]) if(alt < p - 1) vorrat.delete(alt);
+  }
+  return vorrat.get(p);
+}
+
+function zurListe(grund){
+  quelle = "liste";
+  atlasStoerung = "Atlas nicht erreichbar (" + grund + ") — es läuft die Liste.";
+  vorrat.clear();
+  markeSetzen();
+}
+
+async function atlasVersuchen(){
+  try{
+    await atlasStart();
+    if(quelle !== "atlas"){ quelle = "atlas"; vorrat.clear(); }
+    atlasStoerung = ""; atlasFehler = 0;
+  }catch(e){
+    if(quelle !== "atlas") atlasStoerung = ATLAS
+      ? "Atlas nicht erreichbar (" + ((e && e.message) || "Fehler") + ") — es läuft die Liste." : "";
+  }
+  markeSetzen();
 }
 
 /* ------------------- Platzhalter: Höhenlinien, kein Befund ------------------- */
-function saatAus(text){
-  let h = 2166136261 >>> 0;
-  for(let i = 0; i < text.length; i++){ h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
 function zeichneTafel(leinwand, eintrag, notiz){
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const b = leinwand.clientWidth || window.innerWidth;
@@ -356,10 +756,19 @@ function zeichneTafel(leinwand, eintrag, notiz){
 
 /* --------------------------------- Anzeige --------------------------------- */
 let aktuellerPlatz = null, meineAnsicht = null;
+let angezeigt = null;       // {eintrag, index, anzahl} auf dem Schirm
 
 function zeige(id){
   for(const el of ["setup", "tafel", "karte"].map(i => document.getElementById(i))){
     el.hidden = (el.id !== id);
+  }
+}
+
+function markeSetzen(){
+  const beispiel = quelle !== "atlas" && !echteDaten;
+  for(const id of ["markeBild", "markeMeta"]){
+    const el = document.getElementById(id);
+    if(el) el.hidden = !beispiel;
   }
 }
 
@@ -372,17 +781,33 @@ function tafelPlatzhalter(eintrag, notiz){
 }
 
 function fuellTafel(eintrag){
+  document.getElementById("tafel").classList.toggle("is-holding",!!eintrag.holding);
+  if(eintrag.holding){
+    const text = document.createElement("div"); text.className = "holding skinmap-brand";
+    const logo = new Image(); logo.src="./assets/skinmap-logo.png"; logo.alt="";
+    const name=document.createElement("span");name.textContent="SkinMap";
+    text.append(logo,name);
+    document.getElementById("tafelHuelle").replaceChildren(text); return;
+  }
   if(!eintrag.bild){ tafelPlatzhalter(eintrag); return; }
   const img = new Image();
   img.decoding = "async";
-  img.alt = eintrag.diagnose;
+  img.alt = "Dermatoskopische Aufnahme";
   img.onload = () => {
+    if(angezeigt && angezeigt.eintrag !== eintrag) return;
     const huelle = document.getElementById("tafelHuelle");
     huelle.innerHTML = "";
     huelle.appendChild(img);
+    imageReadyKey = displayKey();
+    trainingPollAt = 0;
+    syncTraining();
   };
   /* Ein kaputter Verweis darf auf einem Wandschirm kein Bruchbild zeigen. */
-  img.onerror = () => tafelPlatzhalter(eintrag, "BILD NICHT GELADEN · " + eintrag.id.toUpperCase());
+  img.onerror = () => {
+    if(angezeigt && angezeigt.eintrag !== eintrag) return;
+    imageReadyKey = null;
+    tafelPlatzhalter(eintrag, "BILD NICHT GELADEN · " + eintrag.id.toUpperCase());
+  };
   img.src = eintrag.bild;
 }
 
@@ -393,48 +818,137 @@ function naechstesVorladen(jetzt){
   if(e && e.bild){ const v = new Image(); v.src = e.bild; }
 }
 
+const zaehler = (index, anzahl) => anzahl > 99
+  ? (index + 1).toLocaleString("de-CH") + " / " + anzahl.toLocaleString("de-CH")   // 1’100’000
+  : String(index + 1).padStart(2, "0") + " / " + String(anzahl).padStart(2, "0");
+
 function fuellKarte(eintrag, index, anzahl){
-  document.getElementById("nrMeta").textContent =
-    String(index + 1).padStart(2, "0") + " / " + String(anzahl).padStart(2, "0");
-  document.getElementById("diagnose").textContent = eintrag.diagnose;
-  document.getElementById("unterzeile").textContent = eintrag.art || "";
+  document.getElementById("karte").classList.add("awaiting-diagnosis");
+  document.getElementById("karte").classList.toggle("is-holding",!!eintrag.holding);
+  if(eintrag.holding) return;
+  document.getElementById("nrMeta").textContent = zaehler(index, anzahl);
+  document.getElementById("diagnose").textContent = displayText(eintrag.diagnose);
+  document.getElementById("unterzeile").textContent = displayText(eintrag.art || "");
+  const geschaetzt = eintrag.geschaetzt || [];
+  const alter = eintrag.alter;
   const felder = [
-    ["Fitzpatrick", eintrag.fitz || "—"],
-    ["Körperregion", eintrag.region || "—"],
-    ["Alter", eintrag.alter != null && eintrag.alter !== "" ? eintrag.alter + " J." : "—"],
-    ["Geschlecht", eintrag.sex === "w" || eintrag.sex === "f" ? "weiblich"
+    ["fitz", "Fitzpatrick", eintrag.fitz || "—"],
+    ["region", "Körperregion", eintrag.region || "—"],
+    ["alter", "Alter", alter != null && alter !== "" ? alter + " J." : "—"],
+    ["sex", "Geschlecht", eintrag.sex === "w" || eintrag.sex === "f" ? "weiblich"
                   : eintrag.sex === "m" ? "männlich" : "—"],
-    ["Datensatz", eintrag.datensatz || "—"]
+    ["datensatz", "Datensatz", eintrag.datensatz || "—"]
   ];
   const dl = document.getElementById("felder");
   dl.innerHTML = "";
-  for(const [k, v] of felder){
+  for(const [schluessel, k, v] of felder){
     const d = document.createElement("div"); d.className = "feld";
     const dt = document.createElement("dt"); dt.textContent = k;
-    const dd = document.createElement("dd"); dd.textContent = v;
+    const dd = document.createElement("dd"); dd.textContent = displayText(v);
+    if(v !== "—" && geschaetzt.includes(schluessel)){
+      const m = document.createElement("span");
+      m.className = "schaetzung"; m.textContent = "Modell";
+      m.title = "vom SkinMap-Modell geschätzt, nicht erhoben";
+      dd.appendChild(m);
+    }
     d.append(dt, dd); dl.appendChild(d);
   }
   const q = document.getElementById("quelle");
   q.textContent = "Quelle: " + (eintrag.quelle || "—") + " · Lizenz: " + (eintrag.lizenz || "—");
   q.classList.remove("stoerung");
-  if(stoerung){ q.textContent = stoerung; q.classList.add("stoerung"); }
+  const s = aktuelleStoerung();
+  if(s){ q.textContent = s; q.classList.add("stoerung"); }
+  requestAnimationFrame(fitCockpit);
+}
+
+function aktuelleStoerung(){
+  if(OFFICE_REVIEW_REQUIRED && !reviewed.size) return "";
+  if(quelle === "atlas") return atlasStoerung;
+  return [atlasStoerung, stoerung].filter(Boolean).join(" ");
+}
+
+function rendere(r){
+  if(!unbedenklich(r.eintrag)) r = holdingEntry();
+  if(DERMOSCOPY_ONLY && !r.eintrag.holding && r.eintrag.modality !== "dermoscopy") r = holdingEntry();
+  if(OFFICE_REVIEW_REQUIRED && !r.eintrag.holding && !reviewed.has(r.index)) r = holdingEntry();
+  angezeigt = r;
+  trainingRevealAt = null;
+  trainingPollAt = 0;
+  if(meineAnsicht === "bild") fuellTafel(r.eintrag);
+  else fuellKarte(r.eintrag, r.index, r.anzahl);
+  drawMap(r.point);
+}
+
+let imageReadyKey = null, trainingRevealAt = null, trainingPollAt = 0, trainingBusy = false;
+function displayKey(){
+  if(!angezeigt || angezeigt.eintrag.holding) return null;
+  return {slot:aktuellerPlatz, key:(WALK_MODE ? "neighbour:" : "random:") + angezeigt.eintrag.id};
+}
+async function syncTraining(){
+  const key = displayKey();
+  if(!key || trainingBusy || Date.now()<trainingPollAt) return;
+  if(meineAnsicht === "bild" && (!imageReadyKey || imageReadyKey.slot!==key.slot || imageReadyKey.key!==key.key)) return;
+  trainingBusy = true; trainingPollAt = Date.now()+500;
+  try{
+    const url = "/api/display-ready?slot=" + key.slot + "&key=" + encodeURIComponent(key.key);
+    const response = await fetch(url, {method:meineAnsicht === "bild" ? "POST" : "GET",cache:"no-store",signal:AbortSignal.timeout(3000)});
+    if(!response.ok) return;
+    const state = await response.json();
+    const current = displayKey();
+    if(current && current.slot===key.slot && current.key===key.key && state.ready && Number.isFinite(state.remaining_ms)){
+      trainingRevealAt = Date.now()+Math.max(0,state.remaining_ms);
+      if(meineAnsicht === "bild") trainingPollAt = Infinity;
+    }
+  }catch(e){ /* Bei fehlender Bildbestätigung bleibt die Diagnose verborgen. */ }
+  finally{ trainingBusy = false; }
+}
+
+function zeigeAtlas(p){
+  holeFuer(p).then(r => {
+    if(aktuellerPlatz !== p || quelle !== "atlas") return;
+    atlasFehler = 0; atlasStoerung = "";
+    rendere(r);
+  }, e => {
+    if(aktuellerPlatz !== p || quelle !== "atlas") return;
+    atlasFehler++;
+    const grund = (e && e.message) || "Fehler";
+    /* Für diese Minute ein Eintrag aus der Liste; zwei Fehlschläge in Folge
+       schalten ganz auf die Liste, bis der Atlas wieder antwortet. */
+    if(atlasFehler >= 2) zurListe(grund);
+    else atlasStoerung = "Atlas: " + grund + " — Ersatz aus der Liste.";
+    rendere(eintragFuer(Date.now()));
+  });
 }
 
 function tick(){
   const jetzt = Date.now();
   const p = platz(jetzt);
-  const {eintrag, index, anzahl} = eintragFuer(jetzt);
   if(p !== aktuellerPlatz){
+    trainingRevealAt = null;
+    document.getElementById("karte").classList.add("awaiting-diagnosis");
     aktuellerPlatz = p;
-    if(meineAnsicht === "bild"){ fuellTafel(eintrag); naechstesVorladen(jetzt); }
-    else fuellKarte(eintrag, index, anzahl);
+    /* Beide Schirme versuchen den Atlas in denselben Minuten wieder,
+       so finden sie nach einer Störung gemeinsam zurück. */
+    if(quelle === "liste" && ATLAS && p % 2 === 0) atlasVersuchen();
+    if(quelle === "atlas") zeigeAtlas(p);
+    else {
+      rendere(eintragFuer(jetzt));
+      if(meineAnsicht === "bild") naechstesVorladen(jetzt);
+    }
   }
+  if(quelle === "atlas" && restMs(jetzt) < VORLAUF_MS) holeFuer(p + 1);
+  if(meineAnsicht === "meta"){
+    const revealed = trainingRevealAt !== null && jetzt>=trainingRevealAt;
+    document.getElementById("karte").classList.toggle("awaiting-diagnosis",!revealed);
+    if(!revealed) syncTraining();
+  }else if(meineAnsicht === "bild") syncTraining();
+
   const rest = restMs(jetzt);
   const balken = document.getElementById(meineAnsicht === "bild" ? "laufBild" : "laufMeta");
   if(balken) balken.style.width = ((1 - rest / TAKT_MS) * 100).toFixed(2) + "%";
   const fuss = document.getElementById(meineAnsicht === "bild" ? "fussBild" : "fussMeta");
-  if(fuss){
-    fuss.textContent = String(index + 1).padStart(2, "0") + " / " + String(anzahl).padStart(2, "0") +
+  if(fuss && angezeigt){
+    fuss.textContent = zaehler(angezeigt.index, angezeigt.anzahl) +
       "   ·   nächstes in " + String(Math.max(0, Math.ceil(rest / 1000))).padStart(2, "0") + " s";
   }
 }
@@ -454,18 +968,34 @@ async function starte(){
   meineAnsicht = ansicht();
   if(taktgeber){ clearInterval(taktgeber); taktgeber = null; }
   if(nachlader){ clearInterval(nachlader); nachlader = null; }
+  vorrat.clear(); angezeigt = null;
 
-  await holeListe();
+  if(OFFICE_REVIEW_REQUIRED){
+    reviewed = new Set();
+    try{
+      const response = await fetch(REVIEW_FILE, {cache:"no-store", signal:AbortSignal.timeout(HOLZEIT_MS)});
+      if(!response.ok) throw new Error("Review fehlt");
+      const manifest = await response.json();
+      if(manifest.atlas !== ATLAS) throw new Error("Falscher Atlas");
+      reviewed = new Set((manifest.approved || []).filter(e => e.no_genitals === true && e.visually_reviewed === true && Number.isSafeInteger(e.row_index) && e.row_index >= 0).map(e => e.row_index));
+    }catch(e){ reviewed = new Set(); }
+  }
+  await Promise.all([holeListe(), ATLAS ? atlasVersuchen() : null]);
 
   if(!meineAnsicht){
     zeige("setup");
-    document.getElementById("standText").textContent = listeGeladen
-      ? FOLGE.length + " Einträge aus " + DATEN + ", davon " +
+    const liste = listeGeladen
+      ? FOLGE.length + " Einträge in " + DATEN + ", davon " +
         FOLGE.filter(e => e.bild).length + " mit Bild." +
         (echteDaten ? "" : " Die Liste ist als Beispieldaten gekennzeichnet (\"beispiel\": true).")
-      : "Noch keine Liste erreichbar — es laufen " + BEISPIELE.length +
-        " Beispieleinträge mit Höhenlinien-Tafeln. Sobald " + DATEN +
-        " neben dieser Datei liegt, treten die echten Bilder an ihre Stelle.";
+      : "Keine Liste unter " + DATEN + " — als Ersatz laufen " + BEISPIELE.length +
+        " Beispieleinträge mit Höhenlinien-Tafeln.";
+    const atl = !ATLAS ? "Atlas abgeschaltet. "
+      : quelle === "atlas"
+        ? "Atlas " + atlas.url + " antwortet: " + atlas.n.toLocaleString("de-CH") +
+          " Zeilen, Bilder als " + atlas.bildTyp + ". Die Wand zeigt den Atlas; die Liste springt nur bei Störungen ein. "
+        : atlasStoerung + " ";
+    document.getElementById("standText").textContent = atl + liste;
     return;
   }
 
@@ -473,7 +1003,10 @@ async function starte(){
   aktuellerPlatz = null;
   tick();
   taktgeber = setInterval(tick, 250);
-  nachlader = setInterval(holeListe, NACHLADEN_MS);
+  nachlader = setInterval(() => {
+    holeListe();
+    if(quelle === "atlas") atlasStart().catch(() => {});   // Zeilenzahl auffrischen
+  }, NACHLADEN_MS);
   wachHalten();
 }
 
@@ -485,9 +1018,12 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("hashchange", starte);
 window.addEventListener("resize", () => {
+  fitCockpit();
+  drawMap(angezeigt && angezeigt.point);
   const lw = document.querySelector("#tafelHuelle canvas");
-  if(lw) zeichneTafel(lw, eintragFuer(Date.now()).eintrag);
+  if(lw && angezeigt) zeichneTafel(lw, angezeigt.eintrag);
 });
+document.fonts.ready.then(fitCockpit);
 
 starte();
 </script>
