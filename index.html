@@ -234,13 +234,38 @@ const HOLZEIT_MS = 10000;         // länger wartet kein Wandschirm auf die List
 const ATLAS_HOLZEIT_MS = 15000;   // je Abfrage an den Atlas
 const VORLAUF_MS = 25000;         // so lange vor dem Wechsel den nächsten Eintrag holen
 
+/* SCHUTZ — keine Kinder, keine Genitalien. Gilt immer, auch ohne Freigabeliste,
+   dreifach: als SQL-Bedingung im Atlas, als Prüfung jedes Listeneintrags und
+   als letzte Prüfung vor dem Anzeigen. Im Zweifel fällt ein Bild heraus:
+   unbekanntes Alter, nicht lesbares Alter und jedes Stichwort unten genügen.
+   Ein geschätztes Alter (Modell) braucht mehr Abstand zur Grenze. */
+const ADDITIONAL_PROTECTION = false; // Nutzerfreigabe: Dermatoskopie ist das Kriterium.
+const ERWACHSEN_AB = 18;
+const ERWACHSEN_AB_MODELL = 25;
+const SCHUTZ_MUSTER =
+  /* Kinder */
+  "infan|neonat|newborn|child|pediatr|paediatr|juvenil|baby|babies|toddler|" +
+  "diaper|nappy|napkin|adolescen|teen|kinder|kindes|säugling|saeugling|kleinkind|jugendlich|" +
+  /* Genitalien, Anogenitalregion, Gesäss, Brust */
+  "genit|penis|penile|scrot|vulv|vagin|labia|perine|perian|\\banal\\b|\\banus\\b|groin|inguin|" +
+  "pubic|pubis|glans|balan|foreskin|prepuc|testic|testis|testes|buttock|glute|natal cleft|" +
+  "breast|nipple|areola|leiste|gesäß|gesaess|brust|scham|" +
+  /* Diagnosen, die praktisch nur genital vorkommen */
+  "condylom|syphil|chancr|lichen sclerosus|gonorr|sexually|\\bstd\\b|\\bsti\\b|\\bhpv\\b";
+const SCHUTZ_RE = new RegExp(SCHUTZ_MUSTER, "i");
+const SCHUTZ_TEXTSPALTEN = [
+  "condition", "icd_description", "icd_block_desc", "icd_category_desc",
+  "body_region", "body_location", "body_region_pred",
+  "dataset", "text", "text_short", "img_path"
+];
+
 /* Rückfall, solange keine Liste erreichbar ist. Als Beispieldaten gekennzeichnet:
    erfundene Angaben dürfen nicht wie Atlas-Inhalte aussehen. */
 const BEISPIELE = [
   {id:"a1", diagnose:"Melanoma",                 art:"malignes Melanom",       fitz:"II",  region:"Rücken",        alter:64, sex:"m", datensatz:"ISIC 2020",      quelle:"ISIC Archive", lizenz:"CC-0"},
   {id:"a2", diagnose:"Psoriasis vulgaris",       art:"Plaque-Psoriasis",       fitz:"III", region:"Unterschenkel", alter:41, sex:"w", datensatz:"Fitzpatrick17k", quelle:"Fitzpatrick 17k", lizenz:"CC BY-NC-SA"},
   {id:"a3", diagnose:"Basal cell carcinoma",     art:"Basalzellkarzinom",      fitz:"I",   region:"Nase",          alter:78, sex:"m", datensatz:"HAM10000",       quelle:"ViDIR Wien", lizenz:"CC BY-NC"},
-  {id:"a4", diagnose:"Eczema",                   art:"atopisches Ekzem",       fitz:"V",   region:"Ellenbeuge",    alter:7,  sex:"w", datensatz:"SCIN",           quelle:"SCIN (Google)", lizenz:"CC BY 4.0"},
+  {id:"a4", diagnose:"Eczema",                   art:"atopisches Ekzem",       fitz:"V",   region:"Ellenbeuge",    alter:34, sex:"w", datensatz:"SCIN",           quelle:"SCIN (Google)", lizenz:"CC BY 4.0"},
   {id:"a5", diagnose:"Tinea corporis",           art:"Dermatophytose",         fitz:"VI",  region:"Rumpf",         alter:23, sex:"m", datensatz:"PASSION",        quelle:"PASSION", lizenz:"CC BY-NC"},
   {id:"a6", diagnose:"Seborrheic keratosis",     art:"seborrhoische Keratose", fitz:"II",  region:"Schulter",      alter:69, sex:"w", datensatz:"ISIC 2019",      quelle:"ISIC Archive", lizenz:"CC-0"}
 ];
@@ -286,7 +311,7 @@ function gemischt(liste, saat){
 const platz = (t) => Math.floor(t / TAKT_MS);
 const restMs = (t) => TAKT_MS - (t % TAKT_MS);
 
-let FOLGE = gemischt(BEISPIELE, MISCHUNG_SAAT);
+let FOLGE = gemischt(BEISPIELE.filter(unbedenklich), MISCHUNG_SAAT);
 let listeGeladen = false;   // vitrine.json wurde schon einmal erfolgreich geholt
 let echteDaten = false;     // Listeninhalte sind keine Beispieldaten
 let stoerung = "";          // Störung der Liste
@@ -323,7 +348,7 @@ function normalisiere(rohdaten){
       lizenz: e.lizenz || e.license || "",
       modality: String(e.modality || "").trim().toLowerCase()
     };
-  }).filter(e => e.diagnose && (!DERMOSCOPY_ONLY || e.modality === "dermoscopy"));
+  }).filter(e => e.diagnose && unbedenklich(e) && (!DERMOSCOPY_ONLY || e.modality === "dermoscopy"));
   /* "beispiel": true in der Liste hält die Marke "Beispieldaten" sichtbar,
      solange noch erfundene Einträge drinstehen. */
   return {liste: eintraege, beispiel: obj.beispiel === true};
@@ -347,7 +372,7 @@ async function holeListe(){
        Wand nicht umschalten. */
     if(!listeGeladen){
       const grund = e && e.name === "AbortError" ? "Zeitablauf" : (e && e.message) || "Fehler";
-      FOLGE = gemischt(BEISPIELE, MISCHUNG_SAAT);
+      FOLGE = gemischt(BEISPIELE.filter(unbedenklich), MISCHUNG_SAAT);
       stoerung = "Liste nicht erreichbar (" + grund + ") — es laufen Beispieldaten.";
     }
   }finally{
@@ -368,6 +393,37 @@ let atlas = null;           // {n, bild, filter, felder, bildTyp, url}
 let atlasStoerung = "";
 let atlasFehler = 0;        // Zeilenfehler in Folge
 const vorrat = new Map();   // Platz -> Promise<{eintrag, index, anzahl}>
+
+/* Letzte Prüfung je Eintrag, egal woher er kommt. */
+function unbedenklich(e){
+  if(!ADDITIONAL_PROTECTION) return true;
+  if(!e) return false;
+  if(e.holding) return true;
+  const text = [e.diagnose, e.art, e.region, e.datensatz, e.id].filter(v => v != null).join(" ");
+  if(SCHUTZ_RE.test(text)) return false;
+  if(e.alter == null || e.alter === "" || /</.test(String(e.alter))) return false;
+  const m = String(e.alter).match(/[0-9]+(\.[0-9]+)?/);
+  if(!m) return false;
+  const geschaetzt = (e.geschaetzt || []).includes("alter");
+  return Number(m[0]) >= (geschaetzt ? ERWACHSEN_AB_MODELL : ERWACHSEN_AB);
+}
+
+/* Dieselbe Regel als SQL-Bedingung für den Atlas. Fehlt jede Altersspalte,
+   ist die Bedingung FALSE: lieber nichts zeigen als ungeprüft. */
+function schutzBedingung(spalten){
+  if(!ADDITIONAL_PROTECTION) return "TRUE";
+  const zahl = c => "TRY_CAST(regexp_extract(CAST(" + sqlName(c) +
+    " AS VARCHAR), '[0-9]+(\\.[0-9]+)?', 0) AS DOUBLE)";
+  const alter = [["age", ERWACHSEN_AB], ["age_pred", ERWACHSEN_AB_MODELL]].filter(([c]) => c in spalten);
+  if(!alter.length) return "FALSE";
+  const teile = alter.map(([c, ab]) => "(" + sqlName(c) + " IS NULL OR (" + zahl(c) + " >= " + ab +
+    " AND CAST(" + sqlName(c) + " AS VARCHAR) NOT LIKE '%<%'))");
+  teile.push("(" + alter.map(([c]) => zahl(c) + " IS NOT NULL").join(" OR ") + ")");
+  const text = SCHUTZ_TEXTSPALTEN.filter(c => c in spalten);
+  if(text.length) teile.push("NOT regexp_matches(lower(concat_ws(' ', " +
+    text.map(c => "CAST(" + sqlName(c) + " AS VARCHAR)").join(", ") + ")), '" + SCHUTZ_MUSTER + "')");
+  return "(" + teile.join(" AND ") + ")";
+}
 
 function holdingEntry(){
   return {eintrag:{id:"office-hold", holding:true, diagnose:"SkinMap", art:"", quelle:""},index:0,anzahl:0};
@@ -493,6 +549,7 @@ async function atlasStart(){
   if(DERMOSCOPY_ONLY) bedingungen.push("lower(trim(\"modality\")) = 'dermoscopy'");
   if(OFFICE_REVIEW_REQUIRED) bedingungen.push('"_row_index" IN (' + [...reviewed].join(',') + ')');
   if(diag.length) bedingungen.push("coalesce(" + diag.map(sqlName).join(", ") + ") IS NOT NULL");
+  bedingungen.push(schutzBedingung(spalten));
   if(ATLAS_FILTER.trim()) bedingungen.push("(" + ATLAS_FILTER + ")");
   const [{n}] = await atlasSql('SELECT max("_row_index") + 1 AS n FROM dataset');
   if(!(n >= 1)) throw new Error("Atlas ist leer");
@@ -811,6 +868,7 @@ function aktuelleStoerung(){
 }
 
 function rendere(r){
+  if(!unbedenklich(r.eintrag)) r = holdingEntry();
   if(DERMOSCOPY_ONLY && !r.eintrag.holding && r.eintrag.modality !== "dermoscopy") r = holdingEntry();
   if(OFFICE_REVIEW_REQUIRED && !r.eintrag.holding && !reviewed.has(r.index)) r = holdingEntry();
   angezeigt = r;

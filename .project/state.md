@@ -19,6 +19,9 @@
   persönliche Anmeldung und die tatsächlichen iPads wurden nicht getestet.
 - Rückfall ohne dermatoskopische Einträge zeigt SkinMap plus Logo.
 - Historische Freigabe-/Deployment-Blocker unten sind durch diesen Stand ersetzt.
+- Parallel auf m5 entstandene Commits sind zusammengeführt. Zusätzlicher
+  früherer Alters-/Regionenfilter als optionale, deaktivierte Funktion erhalten;
+  seine 13 Prüfungen bestehen ebenfalls. Hautbilddaten wurden nicht gespeichert.
 
 ## Modalitätsfilter — 2026-10-14
 
