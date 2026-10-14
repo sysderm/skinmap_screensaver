@@ -33,6 +33,14 @@ const wait=()=>new Promise(r=>setTimeout(r,150));
     assert(!(await hidden()),'Revealed after 15 seconds');
     readyAt=null;now=Math.floor(now/60000)*60000+60100;await meta.clock.setSystemTime(now);await meta.evaluate(()=>tick());await wait();
     assert(await hidden(),'Next image hides previous diagnosis immediately');
+    await context.unroute('**/api/display-ready?**');
+    await context.route('**/api/display-ready?**',r=>r.fulfill({status:302,headers:{Location:'https://auth.navarini.com/login?rd=https%3A%2F%2Fsm2.navarini.com%2F'},body:''}));
+    await context.route('https://auth.navarini.com/login?**',r=>r.fulfill({contentType:'text/html',body:'<h1>Test login</h1>'}));
+    await meta.goto(url+'/#meta',{waitUntil:'domcontentloaded'});
+    await meta.clock.runFor(1000);await wait();
+    await meta.waitForURL('https://auth.navarini.com/login?**',{timeout:10000});
+    assert.equal(await meta.locator('h1').textContent(),'Test login');
+    console.log('Browser-Auth: tatsächliche HTTP-302-Antwort führt sichtbar zur Anmeldung.');
     console.log('Training: loaded image required; diagnosis/subtitle hidden before 15s; reveal and next-minute reset passed.');
   }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1});

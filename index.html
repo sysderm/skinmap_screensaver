@@ -891,7 +891,14 @@ async function syncTraining(){
   trainingBusy = true; trainingPollAt = Date.now()+500;
   try{
     const url = "/api/display-ready?slot=" + key.slot + "&key=" + encodeURIComponent(key.key);
-    const response = await fetch(url, {method:meineAnsicht === "bild" ? "POST" : "GET",cache:"no-store",signal:AbortSignal.timeout(3000)});
+    const response = await fetch(url, {method:meineAnsicht === "bild" ? "POST" : "GET",cache:"no-store",credentials:"same-origin",redirect:"manual",signal:AbortSignal.timeout(3000)});
+    /* ForwardAuth leitet abgelaufene Sitzungen um. Automatisches Fetch-Follow
+       endet dabei sonst als unsichtbarer CORS-Fehler und sperrt die Diagnose. */
+    if(response.type === "opaqueredirect" || response.status === 401 || response.status === 403){
+      trainingPollAt = Infinity;
+      location.replace("https://auth.navarini.com/login?rd=" + encodeURIComponent(location.href));
+      return;
+    }
     if(!response.ok) return;
     const state = await response.json();
     const current = displayKey();

@@ -4,6 +4,8 @@
 
 - Beide Domains sind über `auth.navarini.com` geschützt. Nur der bestehende
   Vollzugang darf sie öffnen; die API ist ebenfalls geschützt.
+  Läuft die Anmeldung während der Anzeige ab, führen auch Hintergrundabrufe
+  zur Login-Seite. So bleibt die Diagnose nicht unbemerkt dauerhaft verborgen.
 - Ausschließlich erhobene `modality = dermoscopy` wird verwendet. Fehlende
   Werte, Modellschätzungen, klinische Aufnahmen und TBP sind ausgeschlossen.
   Ersatzlisten müssen jeden Eintrag mit `modality: "dermoscopy"` kennzeichnen.

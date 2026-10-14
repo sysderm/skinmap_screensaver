@@ -1,5 +1,17 @@
 # Projektstand
 
+## Korrektur der Trainingsanmeldung — 2026-10-14
+
+- Ursache leerer Metadaten auf sm2: Beide Clients erhielten vom Auth-Gate
+  HTTP 302 auf Bereitschaftsabrufe. Automatisches Fetch-Follow führte zu einem
+  verschluckten Hintergrundfehler; keine Bildmeldung, keine Diagnosefreigabe.
+- Fetch verwendet nun manuelle Umleitungsbehandlung. Opaque Redirect sowie
+  HTTP 401/403 führen zur bestehenden Anmeldung; der Schutz bleibt aktiv.
+- Regression: tatsächliche 302-Antwort im Browser führt zur sichtbaren
+  Anmeldung; 15-Sekunden-Grenze und Wechsel zur nächsten Aufnahme bestehen.
+  Zusätzliche Auth-Prüfung für Redirect/401/403 besteht. Datei ausgerollt und
+  anhand SHA-256 mit lokalem Stand abgeglichen. Bestehende Tabs brauchen Reload.
+
 ## Ausgerollt — 2026-10-14
 
 - Visuelle Vorschau vom Nutzer freigegeben. Dermatoskopie ist auf ausdrücklichen
@@ -71,3 +83,12 @@ Stand: 2026-10-09
 - Noch offen: Safari/iPad-Prüfung, Lizenzzuordnung pro Datensatz und Absicherung
   des SQL-Endpunkts.
 - Liveprüfung speichert keine Bilder und protokolliert keine Zeileninhalte.
+
+
+## VLM-Beschreibungsprompt — 2026-10-14
+
+- Ziel präzisiert: literaturgestützter Prompt für VLM-Bildbeschreibungen, kein diagnostisches Nachschlagewerk.
+- Eigenständiges Promptpaket erstellt: kontrollierter Wortschatz mit 82 Einträgen und Quellenlinks, acht Strukturgruppen, Qualitäts- und Nichtbeurteilbarkeitsregeln, Sondermodule und JSON-Schema.
+- Quellen: Dermoscopedia/Academy, IDS-Konsensusarbeiten und zusätzliche Publikationen bis 2026; Quellenumfang und Zugriffstiefe explizit dokumentiert. Keine Vollständigkeit der gesamten Literatur behauptet.
+- Schema, zwei synthetische Beispiele und fünf absichtliche Fehlvarianten geprüft; kein Modelltest auf klinischen Bildern durchgeführt. Keine Hautbilddaten übernommen.
+- Promptpaket separat geliefert; Webseiten und Produktionsdienste unverändert. Vor Massenannotation fachliche VLM-Validierung erforderlich.
