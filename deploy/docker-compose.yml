@@ -30,6 +30,23 @@ services:
       - traefik.http.routers.skinmap-screensaver.service=skinmap-screensaver
       - traefik.http.routers.skinmap-screensaver.middlewares=navauth@docker
       - traefik.http.services.skinmap-screensaver.loadbalancer.server.port=80
+  skinmap-combined:
+    image: nginx:alpine
+    container_name: skinmap-combined
+    restart: unless-stopped
+    volumes:
+      - ./public-combined:/usr/share/nginx/html:ro
+      - ./nginx-combined.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.skinmap-combined.entrypoints=websecure
+      - traefik.http.routers.skinmap-combined.rule=Host(`dermatoskopie.ch`) || Host(`www.dermatoskopie.ch`)
+      - traefik.http.routers.skinmap-combined.tls=true
+      - traefik.http.routers.skinmap-combined.tls.certresolver=letsencrypt
+      - traefik.http.routers.skinmap-combined.service=skinmap-combined
+      - traefik.http.services.skinmap-combined.loadbalancer.server.port=80
 networks:
   traefik-proxy:
     external: true

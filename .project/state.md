@@ -1,3 +1,23 @@
+# Combined public display — 2026-10-14
+
+- User requested public dermatoskopie.ch: combined landscape image + diagnosis,
+  skin type, age and localization, SkinMap logo and navarinilab.com link.
+- Combined mode uses a local 15-second timer starting at image onload; no
+  dependency on the private iPads or readiness API. Dermoscopy filter retained.
+- Separate public build and nginx service deployed in the existing app directory;
+  no auth middleware on the public service, no public readiness API. Existing
+  sm1/sm2 service and deployed HTML unchanged.
+- Verified synthetic browser timing at 14.999/15 seconds, next-image reset,
+  3 clinical metadata fields, no readiness calls, landscape fit at 3 sizes.
+  Existing two-screen training and auth regression checks pass.
+- Live deployed-origin browser check confirms a decoded dermoscopy image,
+  diagnosis reveal and exactly three metadata fields; no clinical contents saved.
+- Public origin returns 200 and exact build hash. Domain currently returns
+  Cloudflare 530 / 1033 (unavailable old tunnel); DNS/Cloudflare routing must point
+  dermatoskopie.ch to Hostinger 187.124.4.207. Public domain release not complete.
+- User confirmed both iPads now show metadata 15 seconds after images following
+  login/reload. The earlier blank display was caused by missing sm1 cookie.
+
 # Projektstand
 
 ## Korrektur der Trainingsanmeldung — 2026-10-14

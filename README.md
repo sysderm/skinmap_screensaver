@@ -227,3 +227,16 @@ Dieser zusätzliche ältere Schutzfilter ist erhalten, aber auf ausdrücklichen 
 
 Im Zweifel fällt ein Bild heraus. Prüfung: `node tests/pruefe_schutz.js "$PWD"
 /tmp/vw-wurzeln python3 tests/atlas_nachbau.py`.
+
+## Combined landscape display
+
+`#combined` previews image and clinical metadata together. The public build
+always uses this view. It shows skin type, localization and age immediately and
+reveals diagnosis 15 seconds after the image loads. Failed image loads do not
+reveal a diagnosis. The dermoscopy filter and neighbourhood selection remain.
+
+Build with `python3 scripts/build_public.py <output-directory>`. Deploy the
+result to `public-combined/` alongside `deploy/nginx-combined.conf` and the
+compose service `skinmap-combined`. This public service has no readiness API;
+the existing private displays keep their own authentication and shared timer.
+The domain must resolve to the hosting server before HTTPS release can finish.

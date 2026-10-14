@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b1320">
 <meta name="robots" content="noindex">
-<title>SkinMap Vitrine</title>
+<title>SkinMap</title>
 <!-- Schriften nicht blockierend: haengt das Netz, zeichnet die Seite mit den
      Rueckfallschriften und tauscht spaeter. media=print laedt ohne zu blockieren,
      onload schaltet auf alle Medien. -->
@@ -127,6 +127,24 @@ ol b{color:var(--schrift);font-weight:600}
 .mode-link{display:inline-block;margin-right:12px;font-size:18px}
 @media(max-width:700px){.felder{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-panel{min-height:80px}}
 
+
+/* Combined landscape display: one local image clock, no cross-screen API. */
+body.combined #tafel{right:38%;bottom:3px}
+body.combined #karte{left:62%;padding:clamp(16px,2.2vw,40px);padding-bottom:64px;gap:4vh;background:var(--grund)}
+body.combined #karte .kopf{flex:none}
+body.combined .brand-small{font-size:clamp(24px,2.6vw,44px)}
+body.combined .brand-small img{width:64px;height:64px}
+body.combined .diagnose{font-size:calc(clamp(34px,4.3vw,90px)*var(--cockpit-scale));line-height:1.08}
+body.combined .felder{grid-template-columns:1fr;gap:3vh;border:0;padding:0}
+body.combined .feld dt{font-size:calc(clamp(16px,1.5vw,28px)*var(--cockpit-scale))}
+body.combined .feld dd{font-size:calc(clamp(28px,3.2vw,62px)*var(--cockpit-scale))}
+body.combined .unterzeile,body.combined .atlas-panel,body.combined .quelle,
+body.combined .nr,body.combined .marke,body.combined .fuss,body.combined #laufMeta{display:none!important}
+body.combined #karte.awaiting-diagnosis .felder{visibility:visible}
+.lab-link{display:none}
+body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;font-size:clamp(16px,1.6vw,26px);text-decoration:none}
+@media(orientation:portrait){body.combined #tafel{right:0;bottom:48%}body.combined #karte{left:0;top:52%;gap:2vh}body.combined .felder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}body.combined .brand-small img{width:40px;height:40px}}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -203,6 +221,8 @@ ol b{color:var(--schrift);font-weight:600}
   <div class="lauf"><i id="laufMeta"></i></div>
 </section>
 
+<a class="lab-link" href="https://navarinilab.com/" target="_blank" rel="noopener">navarinilab.com ↗</a>
+
 <script>
 "use strict";
 
@@ -276,6 +296,7 @@ const BEISPIELE = [
 --------------------------------------------------------------------------- */
 function ansicht(){
   const h = (location.hash || "").replace(/^#/, "").toLowerCase();
+  if(h === "combined" || /^(www\.)?dermatoskopie\.ch$/.test(location.hostname)) return "combined";
   if(h === "bild" || h === "tafel") return "bild";
   if(h === "meta" || h === "karte") return "meta";
   const host = location.hostname.toLowerCase();
@@ -674,7 +695,7 @@ function bildVorladen(src){
 
 function holeFuer(p){
   if(!vorrat.has(p)){
-    const mitBild = meineAnsicht === "bild";
+    const mitBild = meineAnsicht === "bild" || meineAnsicht === "combined";
     const auftrag = atlasEintrag(p, mitBild).then(async r => {
       if(mitBild && r.eintrag.bild) await bildVorladen(r.eintrag.bild);
       return r;
@@ -760,7 +781,7 @@ let angezeigt = null;       // {eintrag, index, anzahl} auf dem Schirm
 
 function zeige(id){
   for(const el of ["setup", "tafel", "karte"].map(i => document.getElementById(i))){
-    el.hidden = (el.id !== id);
+    el.hidden = id === "combined" ? el.id === "setup" : (el.id !== id);
   }
 }
 
@@ -800,7 +821,8 @@ function fuellTafel(eintrag){
     huelle.appendChild(img);
     imageReadyKey = displayKey();
     trainingPollAt = 0;
-    syncTraining();
+    if(meineAnsicht === "combined") trainingRevealAt = Date.now()+15000;
+    else syncTraining();
   };
   /* Ein kaputter Verweis darf auf einem Wandschirm kein Bruchbild zeigen. */
   img.onerror = () => {
@@ -842,8 +864,9 @@ function fuellKarte(eintrag, index, anzahl){
   const dl = document.getElementById("felder");
   dl.innerHTML = "";
   for(const [schluessel, k, v] of felder){
+    if(meineAnsicht === "combined" && !["fitz","region","alter"].includes(schluessel)) continue;
     const d = document.createElement("div"); d.className = "feld";
-    const dt = document.createElement("dt"); dt.textContent = k;
+    const dt = document.createElement("dt"); dt.textContent = meineAnsicht === "combined" ? ({fitz:"Hauttyp",region:"Lokalisation",alter:"Alter"}[schluessel] || k) : k;
     const dd = document.createElement("dd"); dd.textContent = displayText(v);
     if(v !== "—" && geschaetzt.includes(schluessel)){
       const m = document.createElement("span");
@@ -874,7 +897,8 @@ function rendere(r){
   angezeigt = r;
   trainingRevealAt = null;
   trainingPollAt = 0;
-  if(meineAnsicht === "bild") fuellTafel(r.eintrag);
+  if(meineAnsicht === "combined"){fuellKarte(r.eintrag,r.index,r.anzahl);fuellTafel(r.eintrag);}
+  else if(meineAnsicht === "bild") fuellTafel(r.eintrag);
   else fuellKarte(r.eintrag, r.index, r.anzahl);
   drawMap(r.point);
 }
@@ -944,10 +968,10 @@ function tick(){
     }
   }
   if(quelle === "atlas" && restMs(jetzt) < VORLAUF_MS) holeFuer(p + 1);
-  if(meineAnsicht === "meta"){
+  if(meineAnsicht === "meta" || meineAnsicht === "combined"){
     const revealed = trainingRevealAt !== null && jetzt>=trainingRevealAt;
     document.getElementById("karte").classList.toggle("awaiting-diagnosis",!revealed);
-    if(!revealed) syncTraining();
+    if(!revealed && meineAnsicht !== "combined") syncTraining();
   }else if(meineAnsicht === "bild") syncTraining();
 
   const rest = restMs(jetzt);
@@ -973,6 +997,7 @@ async function wachHalten(){
 let taktgeber = null, nachlader = null;
 async function starte(){
   meineAnsicht = ansicht();
+  document.body.classList.toggle("combined",meineAnsicht === "combined");
   if(taktgeber){ clearInterval(taktgeber); taktgeber = null; }
   if(nachlader){ clearInterval(nachlader); nachlader = null; }
   vorrat.clear(); angezeigt = null;
@@ -1006,7 +1031,7 @@ async function starte(){
     return;
   }
 
-  zeige(meineAnsicht === "bild" ? "tafel" : "karte");
+  zeige(meineAnsicht === "combined" ? "combined" : meineAnsicht === "bild" ? "tafel" : "karte");
   aktuellerPlatz = null;
   tick();
   taktgeber = setInterval(tick, 250);
