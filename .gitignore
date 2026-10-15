@@ -1,5 +1,3 @@
 __pycache__/
 *.py[cod]
 
-# Derm7pt: Bilder und Metadaten duerfen nicht weiterverteilt werden (README des Datensatzes, CC BY-NC-ND). Nur lokal bauen, nicht committen.
-derm7pt/

@@ -11,7 +11,7 @@ Lizenz und Urheber stammen aus dem ISIC-Archiv (CC-0 bzw. CC-BY-NC). Ausgenommen
 Neu bauen: `node scripts/isic_meta.mjs <raw> <meta.json>`, dann `node scripts/build_experten.mjs <Ordner mit raw/ und masks/> <meta.json>`
 (Quelle: ISIC 2018 Task 1-2 Input und Task 2 GroundTruth).
 Reihenfolge: Jedes Bild kommt vor; alle Diagnosen außer Nävi erscheinen dreimal so oft (`ANDERE_KOPIEN` in `index.html`), jede Kopie in einem eigenen Abschnitt des Durchlaufs.
-Optional (nur geschützter Host, nicht im Repo): `derm7pt/` mit den Derm7pt-Fällen und den echten 7-Punkte-Kriterien, gebaut mit `node scripts/build_derm7pt.mjs <release_v0>`. Derm7pt darf nicht weiterverteilt werden (CC BY-NC-ND, nur Forschung) und gehört nicht auf den öffentlichen Host. Die früheren, KI-beschriebenen 5065 Bilder stehen nur noch in der Git-Historie.
+Optional (nur geschützter Host): `derm7pt/` (liegt im privaten Repo) mit den Derm7pt-Fällen und den echten 7-Punkte-Kriterien, gebaut mit `node scripts/build_derm7pt.mjs <release_v0>`. Derm7pt darf nicht weiterverteilt werden (CC BY-NC-ND, nur Forschung) und gehört nicht auf den öffentlichen Host; das Repo darf nicht öffentlich werden. Die früheren, KI-beschriebenen 5065 Bilder stehen nur noch in der Git-Historie.
 
 ## Aktueller Betrieb
 

@@ -7,4 +7,4 @@
 - `prompts/skinmap_vlm_beschreibung_v1.1.txt` – verwendeter Beschreibungs-Prompt (Version 1.0 plus Zusatz v1.1)
 - Skripte: `scripts/eval/` (Apollo-Lauf mit Lastmessung, ISIC-Vergleich, QC) und `scripts/` (isic_meta, build_experten, build_derm7pt)
 
-Derm7pt (`derm7pt/`) ist bewusst nicht im Repo: nur Forschung, keine Weitergabe (CC BY-NC-ND).
+Derm7pt (`derm7pt/`) liegt im **privaten** Repo (Entscheidung von A. Navarini, 2026-10-15). Der Datensatz darf laut Autoren nicht weiterverteilt werden (nur Forschung, CC BY-NC-ND): Repo nicht öffentlich machen und `derm7pt/` nie auf den öffentlichen Host kopieren (der Public-Build kopiert den Ordner nicht).

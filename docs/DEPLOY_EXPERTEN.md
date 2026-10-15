@@ -8,7 +8,7 @@ Zwei fertige Pakete (nichts davon ist bisher auf einem Server):
 | `public/` | sm1/sm2.navarini.com (mit Login) | index.html, vitrine.json, office-review.json, assets/, experten/, **derm7pt/** |
 
 Derm7pt darf nicht weiterverteilt werden (CC BY-NC-ND, nur Forschung): `derm7pt/` gehört nur auf den geschützten Host,
-nie auf den öffentlichen, nie ins Git.
+nie auf den öffentlichen Host. Im Git liegt er nur, weil das Repo privat ist.
 
 ## Auf dem VPS (Pfade aus `docker inspect skinmap-screensaver` bzw. der Combined-Dienst)
 
