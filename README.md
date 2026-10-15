@@ -1,5 +1,18 @@
 # SkinMap Vitrine
 
+## Experten-Sammlung (aktueller Inhalt)
+
+Die Wand zeigt ausschließlich dermatoskopische Bilder mit **echten Expertenannotationen** aus der
+ISIC-2018-Challenge (Task 2) unter `experten/` (`ATLAS = ""`, `DATEN = "./experten/vitrine.json"`,
+`DERMOSCOPY_ONLY = true`). Es gibt keinen KI-Text: Unter dem Bild stehen die von Experten markierten Strukturen
+(Pigmentnetz, Negatives Netz, Streaks, Milia-ähnliche Zysten, Globules/Dots). Zusammen mit der Diagnose (nach 15 s)
+wechselt das Bild zur Version mit den farbigen Experten-Masken (`experten/overlay/`). Diagnose, Region, Alter, Geschlecht,
+Lizenz und Urheber stammen aus dem ISIC-Archiv (CC-0 bzw. CC-BY-NC). Ausgenommen: Aufnahmen von unter 18-Jährigen.
+Neu bauen: `node scripts/isic_meta.mjs <raw> <meta.json>`, dann `node scripts/build_experten.mjs <Ordner mit raw/ und masks/> <meta.json>`
+(Quelle: ISIC 2018 Task 1-2 Input und Task 2 GroundTruth).
+Reihenfolge: Jedes Bild kommt vor; alle Diagnosen außer Nävi erscheinen dreimal so oft (`ANDERE_KOPIEN` in `index.html`), jede Kopie in einem eigenen Abschnitt des Durchlaufs.
+Optional (nur geschützter Host, nicht im Repo): `derm7pt/` mit den Derm7pt-Fällen und den echten 7-Punkte-Kriterien, gebaut mit `node scripts/build_derm7pt.mjs <release_v0>`. Derm7pt darf nicht weiterverteilt werden (CC BY-NC-ND, nur Forschung) und gehört nicht auf den öffentlichen Host. Die früheren, KI-beschriebenen 5065 Bilder stehen nur noch in der Git-Historie.
+
 ## Aktueller Betrieb
 
 - Beide Domains sind über `auth.navarini.com` geschützt. Nur der bestehende

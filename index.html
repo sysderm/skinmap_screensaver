@@ -100,6 +100,24 @@ ol{margin:0;padding-left:1.3em;color:var(--leise);line-height:1.8}
 ol b{color:var(--schrift);font-weight:600}
 .hinweis{border-left:2px solid var(--akzent);padding:2px 0 2px 14px;color:var(--leise);line-height:1.65}
 #tafel img{image-rendering:auto;max-width:none;max-height:none}
+/* Beschreibung unter dem Bild: das Bild rückt nach oben, der Text bekommt den unteren Teil. */
+/* Das Bild bekommt allen Platz, den der Text nicht braucht, und wird nie beschnitten (object-fit:contain). */
+#tafel.mit-text{display:flex;flex-direction:column;place-items:stretch}
+#tafel.mit-text .huelle{position:relative;inset:auto;flex:1 1 0;min-height:0;width:100%}
+#tafel.mit-text .huelle img,#tafel.mit-text .huelle canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#beschr{position:relative;flex:none;max-height:42%;width:100%;box-sizing:border-box;overflow:hidden;
+  padding:clamp(10px,1.6vh,24px) clamp(16px,2.4vw,48px) clamp(22px,3.2vh,44px);background:var(--grund);border-top:1px solid var(--linie);
+  display:flex;flex-direction:column;gap:1.2vh}
+#beschr .ai{margin:0;display:flex;align-items:center;gap:.45em;font-size:clamp(11px,1.5vh,24px);font-weight:600;color:var(--warn)}
+#beschr .ai svg{flex:none}
+#beschr .bt{margin:0;font-size:clamp(15px,2.1vh,36px);line-height:1.34;color:var(--schrift)}
+#beschr .bf{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:.4vh 2vw;
+  font-size:clamp(12px,1.6vh,27px);line-height:1.28;color:var(--leise);border-top:1px solid var(--linie);padding-top:1vh}
+#beschr .bf b{font-weight:600;color:var(--akzent)}
+#beschr .bf .sw{display:inline-block;width:.8em;height:.8em;border-radius:2px;margin-right:.5em;vertical-align:-.05em}
+#beschr .qu{margin:0;font-size:clamp(10px,1.3vh,20px);color:var(--leise)}
+#tafel.is-holding #beschr{display:none}
+@media(orientation:portrait){#beschr{max-height:46%}#beschr .bt{font-size:clamp(13px,1.7vh,30px)}#beschr .bf{font-size:clamp(11px,1.3vh,22px)}}
 #tafel .holding{padding:6vw;text-align:center;font-size:clamp(24px,4vw,64px);line-height:1.3}
 .skinmap-brand{display:flex;align-items:center;justify-content:center;gap:3vw;font-size:clamp(48px,12vw,220px);font-weight:600}
 .skinmap-brand img{width:clamp(100px,22vw,380px);height:auto;object-fit:contain}
@@ -143,7 +161,7 @@ body.combined .nr,body.combined .marke,body.combined .fuss,body.combined #laufMe
 body.combined #karte.awaiting-diagnosis .felder{visibility:visible}
 .lab-link{display:none}
 body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;font-size:clamp(16px,1.6vw,26px);text-decoration:none}
-@media(orientation:portrait){body.combined #tafel{right:0;bottom:48%}body.combined #karte{left:0;top:52%;gap:2vh}body.combined .felder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}body.combined .brand-small img{width:40px;height:40px}}
+@media(orientation:portrait){body.combined #tafel{right:0;bottom:30%}body.combined #karte{left:0;top:70%;gap:2vh}body.combined .felder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}body.combined .brand-small img{width:40px;height:40px}}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -190,6 +208,7 @@ body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;fon
 
 <section id="tafel" hidden>
   <div class="huelle" id="tafelHuelle"></div>
+  <div id="beschr" hidden><p class="bt" id="beschrText"></p><ul class="bf" id="beschrBefunde"></ul><p class="ai" id="beschrHinweis" role="note" hidden><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" aria-hidden="true"><path d="M12 2.8 22.2 20.5H1.8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9.5v5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.15" fill="currentColor"/></svg><span id="beschrHinweisText"></span></p><p class="qu" id="beschrQuelle"></p></div>
   <div class="fuss">
     <span class="marke" id="markeBild" hidden>Beispieldaten</span>
     <span id="fussBild"></span>
@@ -221,7 +240,7 @@ body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;fon
   <div class="lauf"><i id="laufMeta"></i></div>
 </section>
 
-<a class="lab-link" href="https://navarinilab.com/" target="_blank" rel="noopener">navarinilab.com ↗</a>
+<a class="lab-link" id="autorLink" target="_blank" rel="noopener">by Alexander Navarini</a>
 
 <script>
 "use strict";
@@ -237,16 +256,20 @@ body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;fon
    DATEN: Ersatzliste, wenn der Atlas nicht antwortet. Liegt sie neben dieser
    Datei (empfohlen), bleibt es bei "./vitrine.json" — gleicher Host, kein CORS.
 ============================================================================ */
-const ATLAS = "https://skinmap.ngrok.io";
+const ATLAS = "";                 // Lehrbuchsammlung: nur die lokale Liste, kein Atlas
 const ATLAS_FILTER = "";          // optional, SQL-Bedingung, z. B. "modality = 'clinical'"
 const DERMOSCOPY_ONLY = true;
+const LINKEDIN_URL = "https://www.linkedin.com/in/alexander-navarini-97a6525b/";         // Adresse des LinkedIn-Profils; leer = „by Alexander Navarini“ ohne Link
+{ const a = document.getElementById("autorLink");
+  try{ const u = new URL(LINKEDIN_URL); if(a && u.protocol === "https:" && (u.hostname === "linkedin.com" || u.hostname.endsWith(".linkedin.com"))) a.href = u.href; }catch(e){} }
 const DIAGNOSIS_DELAY_MS = 15000;
 const OFFICE_REVIEW_REQUIRED = false;
 const REVIEW_FILE = "./office-review.json";
 const WALK_MODE = new URLSearchParams(location.search).get("mode") !== "random";
 let reviewed = new Set();
 let route = [], mapPoints = [];
-const DATEN = "./vitrine.json";
+const DATEN = "./experten/vitrine.json";
+const DATEN_OPTIONAL = ["./derm7pt/vitrine.json"];   // nur auf dem geschützten Host vorhanden (Derm7pt darf nicht weiterverteilt werden)
 const TAKT_MS = 60000;            // eine Minute, an der Wanduhr ausgerichtet
 const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme wählen gleich
 const NACHLADEN_MS = 10 * 60000;  // Liste erneut holen, ohne die iPads anzufassen
@@ -295,17 +318,28 @@ const BEISPIELE = [
    #bild / #meta überschreibt das (Vorschau, Test, anderer Hostname).
 --------------------------------------------------------------------------- */
 function ansicht(){
+  /* Standard auf jedem Host: Ein-Bildschirm-Ansicht. Die Zwei-iPad-Methode (sm1/sm2) ist archiviert
+     und nur noch über #bild bzw. #meta erreichbar. */
   const h = (location.hash || "").replace(/^#/, "").toLowerCase();
-  if(h === "combined" || /^(www\.)?dermatoskopie\.ch$/.test(location.hostname)) return "combined";
   if(h === "bild" || h === "tafel") return "bild";
   if(h === "meta" || h === "karte") return "meta";
-  const host = location.hostname.toLowerCase();
-  if(/^sm1\b|^sm1\./.test(host)) return "bild";
-  if(/^sm2\b|^sm2\./.test(host)) return "meta";
-  return null;
+  return "combined";
 }
 
 /* --------------------------- Takt und Reihenfolge --------------------------- */
+/* Reihenfolge: jedes Bild kommt vor, Diagnosen ausser Naevi aber ANDERE_KOPIEN-mal so oft. Jede Kopie liegt in
+   ihrem eigenen Abschnitt des Durchlaufs, so folgt dasselbe Bild nie dicht auf sich selbst. Beide Schirme rechnen gleich. */
+const ANDERE_KOPIEN = 3;
+const istNaevus = (e) => /n[aä]vus/i.test(e.diagnose || "");
+function gewichtet(liste, saat){
+  const r = zufall(saat), mit = [];
+  for(const e of liste){
+    const n = istNaevus(e) ? 1 : ANDERE_KOPIEN;
+    for(let c = 0; c < n; c++) mit.push({e, k: (c + r()) / n});
+  }
+  return mit.sort((a, b) => a.k - b.k).map(x => x.e);
+}
+
 function zufall(saat){
   let a = saat >>> 0;
   return function(){
@@ -367,7 +401,12 @@ function normalisiere(rohdaten){
       datensatz: e.datensatz || e.dataset || "",
       quelle: e.quelle || e.source || "",
       lizenz: e.lizenz || e.license || "",
-      modality: String(e.modality || "").trim().toLowerCase()
+      modality: String(e.modality || "").trim().toLowerCase(),
+      overlay: String(e.overlay || "").trim(),
+      hinweis: String(e.hinweis || "").trim(),
+      geschaetzt: Array.isArray(e.geschaetzt) ? e.geschaetzt.map(String) : [],
+      beschreibung: String(e.beschreibung || "").trim(),
+      befunde: Array.isArray(e.befunde) ? e.befunde.filter(b => b && b.term).map(b => ({term: String(b.term), ort: String(b.ort || ""), farbe: /^#[0-9a-f]{6}$/i.test(b.farbe || "") ? b.farbe : ""})) : []
     };
   }).filter(e => e.diagnose && unbedenklich(e) && (!DERMOSCOPY_ONLY || e.modality === "dermoscopy"));
   /* "beispiel": true in der Liste hält die Marke "Beispieldaten" sichtbar,
@@ -382,9 +421,15 @@ async function holeListe(){
     const r = await fetch(DATEN + "?t=" + platz(Date.now()),
                           {cache: "no-store", signal: abbruch.signal});
     if(!r.ok) throw new Error("HTTP " + r.status);
-    const {liste, beispiel} = normalisiere(await r.json());
+    let {liste, beispiel} = normalisiere(await r.json());
+    for(const u of DATEN_OPTIONAL){
+      try{
+        const z = await fetch(u + "?t=" + platz(Date.now()), {cache: "no-store", signal: abbruch.signal});
+        if(z.ok && /json/i.test(z.headers.get("content-type") || "")) liste = liste.concat(normalisiere(await z.json()).liste);
+      }catch(e){ /* optionale Liste fehlt: nur die Hauptliste läuft */ }
+    }
     if(!liste.length) throw new Error("Liste ist leer");
-    FOLGE = gemischt(liste, MISCHUNG_SAAT);
+    FOLGE = gewichtet(liste, MISCHUNG_SAAT);
     listeGeladen = true;
     echteDaten = !beispiel;
     stoerung = "";
@@ -801,8 +846,38 @@ function tafelPlatzhalter(eintrag, notiz){
   requestAnimationFrame(() => zeichneTafel(lw, eintrag, notiz));
 }
 
+function beschreibungSetzen(eintrag){
+  const box = document.getElementById("beschr"), tafel = document.getElementById("tafel");
+  const hat = !!(eintrag && !eintrag.holding && eintrag.beschreibung);
+  box.hidden = !hat; tafel.classList.toggle("mit-text", hat);
+  document.getElementById("beschrText").textContent = hat ? eintrag.beschreibung : "";
+  const hw = document.getElementById("beschrHinweis"); hw.hidden = !(hat && eintrag.hinweis);
+  document.getElementById("beschrHinweisText").textContent = hat ? eintrag.hinweis : "";
+  const q = document.getElementById("beschrQuelle");
+  q.textContent = hat ? [eintrag.quelle, eintrag.lizenz, (eintrag.quelle || "").includes(eintrag.datensatz) ? "" : eintrag.datensatz].filter(Boolean).join(" · ") : "";
+  const ul = document.getElementById("beschrBefunde"); ul.replaceChildren();
+  if(hat) for(const b of eintrag.befunde || []){
+    const li = document.createElement("li"), t = document.createElement("b");
+    if(b.farbe){ const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = b.farbe; li.appendChild(sw); }
+    t.textContent = b.term; li.append(t);
+    if(b.ort && !b.farbe) li.append(" — " + b.ort);
+    ul.appendChild(li);
+  }
+}
+
+/* Bei der Diagnose-Einblendung wechselt das Bild zur Version mit den Experten-Markierungen. */
+function zeigeOverlay(){
+  const e = angezeigt && angezeigt.eintrag, img = document.querySelector("#tafelHuelle img");
+  if(!e || !e.overlay || !img || img.dataset.overlay) return;
+  img.dataset.overlay = "1";
+  const o = new Image();
+  o.onload = () => { if(angezeigt && angezeigt.eintrag === e && img.isConnected) img.src = e.overlay; };
+  o.src = e.overlay;
+}
+
 function fuellTafel(eintrag){
   document.getElementById("tafel").classList.toggle("is-holding",!!eintrag.holding);
+  if(eintrag.holding) beschreibungSetzen(null);
   if(eintrag.holding){
     const text = document.createElement("div"); text.className = "holding skinmap-brand";
     const logo = new Image(); logo.src="./assets/skinmap-logo.png"; logo.alt="";
@@ -810,6 +885,7 @@ function fuellTafel(eintrag){
     text.append(logo,name);
     document.getElementById("tafelHuelle").replaceChildren(text); return;
   }
+  beschreibungSetzen(eintrag);
   if(!eintrag.bild){ tafelPlatzhalter(eintrag); return; }
   const img = new Image();
   img.decoding = "async";
@@ -971,6 +1047,7 @@ function tick(){
   if(meineAnsicht === "meta" || meineAnsicht === "combined"){
     const revealed = trainingRevealAt !== null && jetzt>=trainingRevealAt;
     document.getElementById("karte").classList.toggle("awaiting-diagnosis",!revealed);
+    if(revealed) zeigeOverlay();
     if(!revealed && meineAnsicht !== "combined") syncTraining();
   }else if(meineAnsicht === "bild") syncTraining();
 
