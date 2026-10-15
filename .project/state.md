@@ -1,3 +1,13 @@
+# Experten-Sammlung — 2026-10-15
+
+- Atlas abgeschaltet; die Wand zeigt nur dermatoskopische Bilder aus ISIC 2018 Task 2 mit echten Expertenstrukturen
+  (Pigmentnetz, Negatives Netz, Streaks, Milia-ähnliche Zysten, Globules/Dots). Bei der Diagnose-Einblendung (15 s)
+  wechselt das Bild zum Overlay mit den Masken. Ein-Bildschirm-Ansicht ist Standard auf jedem Host; sm1/sm2-Zweischirm-Ansicht nur noch per #bild/#meta.
+- Reihenfolge: jedes Bild kommt vor, Nicht-Nävi dreimal so oft (ANDERE_KOPIEN).
+- Optional nur auf geschütztem Host: derm7pt/ (Derm7pt, echte 7-Punkte-Kriterien). Nicht im Repo, nicht auf dem öffentlichen Host (CC BY-NC-ND, keine Weitergabe).
+- KI-Beschreibungen (Apollo) wurden getestet und verworfen: gegen ISIC-Masken nur Pigmentnetz brauchbar (F1 0,80), Lage unzuverlässig; siehe docs/ISIC_Vergleich.md.
+- Auslieferung steht aus: Pakete werden mit scripts/build_public.py bzw. wie in docs/DEPLOY_EXPERTEN.md gebaut; kein SSH-Zugang in der Entwicklungssitzung.
+
 # Public DNS cutover — 2026-10-14
 
 - Cloudflare root CNAME to the unavailable tunnel replaced with proxied A
