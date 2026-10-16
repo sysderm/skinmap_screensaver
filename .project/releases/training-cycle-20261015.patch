@@ -1,0 +1,82 @@
+--- a/index.html
++++ b/index.html
+@@ -164,6 +164,21 @@
+ @media(orientation:portrait){body.combined #tafel{right:0;bottom:30%}body.combined #karte{left:0;top:70%;gap:2vh}body.combined .felder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}body.combined .brand-small img{width:40px;height:40px}}
+ 
+ @media (prefers-reduced-motion:reduce){*{transition:none!important}}
++
++/* One-minute training cycle: 0–15 diagnose, 15–40 feedback, 40–60 learn. */
++body.combined #tafel{bottom:90px}
++body.combined #karte{padding-bottom:110px}
++#trainingCycle{display:none}
++body.combined #trainingCycle{display:block;position:fixed;left:2.2vw;right:max(240px,20vw);bottom:20px;z-index:5}
++.cycle-labels{display:grid;grid-template-columns:15fr 25fr 20fr;gap:10px;margin-bottom:10px;font-size:clamp(12px,1.1vw,20px);color:var(--leise)}
++.cycle-labels span{white-space:nowrap;opacity:.6}
++.cycle-labels .active{opacity:1;color:var(--schrift);font-weight:600}
++.cycle-track{height:8px;background:var(--linie);border-radius:8px;overflow:hidden;position:relative}
++.cycle-fill{height:100%;width:0;background:linear-gradient(90deg,#6f9caa 0%,#90b6aa 65%,#c5ba85 100%);transition:width .25s linear}
++.cycle-track:before,.cycle-track:after{content:"";position:absolute;top:0;bottom:0;width:2px;background:var(--grund);z-index:1}
++.cycle-track:before{left:25%}.cycle-track:after{left:66.6667%}
++@media(orientation:portrait){body.combined #tafel{bottom:36%}body.combined #karte{top:64%;padding-bottom:125px}body.combined #trainingCycle{right:2.2vw;bottom:20px}body.combined .lab-link{bottom:87px}}
++
+ </style>
+ </head>
+ <body>
+@@ -208,7 +223,7 @@
+ 
+ <section id="tafel" hidden>
+   <div class="huelle" id="tafelHuelle"></div>
+-  <div id="beschr" hidden><p class="bt" id="beschrText"></p><ul class="bf" id="beschrBefunde"></ul><p class="ai" id="beschrHinweis" role="note" hidden><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" aria-hidden="true"><path d="M12 2.8 22.2 20.5H1.8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9.5v5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.15" fill="currentColor"/></svg><span id="beschrHinweisText"></span></p><p class="qu" id="beschrQuelle"></p></div>
++  <div id="beschr" hidden><p class="bt" id="beschrText"></p><ul class="bf" id="beschrBefunde" hidden></ul><p class="qu" id="overlayExamples" hidden>Markierungen sind Beispiele.</p><p class="ai" id="beschrHinweis" role="note" hidden><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" aria-hidden="true"><path d="M12 2.8 22.2 20.5H1.8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9.5v5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.15" fill="currentColor"/></svg><span id="beschrHinweisText"></span></p><p class="qu" id="beschrQuelle"></p></div>
+   <div class="fuss">
+     <span class="marke" id="markeBild" hidden>Beispieldaten</span>
+     <span id="fussBild"></span>
+@@ -242,6 +257,10 @@
+ 
+ <a class="lab-link" id="autorLink" target="_blank" rel="noopener">Prof. Navarini</a>
+ 
++<div id="trainingCycle" role="progressbar" aria-label="Trainingsminute" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0">
++  <div class="cycle-labels"><span>Diagnose stellen</span><span>Feedback</span><span>Lernen</span></div>
++  <div class="cycle-track"><div class="cycle-fill" id="cycleFill"></div></div>
++</div>
+ <script>
+ "use strict";
+ 
+@@ -850,7 +869,10 @@
+   const box = document.getElementById("beschr"), tafel = document.getElementById("tafel");
+   const hat = !!(eintrag && !eintrag.holding && eintrag.beschreibung);
+   box.hidden = !hat; tafel.classList.toggle("mit-text", hat);
+-  document.getElementById("beschrText").textContent = hat ? eintrag.beschreibung : "";
++  document.getElementById("beschrBefunde").hidden = true;
++  document.getElementById("overlayExamples").hidden = true;
++  document.getElementById("beschrText").textContent = "";
++  document.getElementById("beschrText").hidden = true;
+   const hw = document.getElementById("beschrHinweis"); hw.hidden = !(hat && eintrag.hinweis);
+   document.getElementById("beschrHinweisText").textContent = hat ? eintrag.hinweis : "";
+   const q = document.getElementById("beschrQuelle");
+@@ -1047,11 +1069,24 @@
+   if(meineAnsicht === "meta" || meineAnsicht === "combined"){
+     const revealed = trainingRevealAt !== null && jetzt>=trainingRevealAt;
+     document.getElementById("karte").classList.toggle("awaiting-diagnosis",!revealed);
+-    if(revealed) zeigeOverlay();
++    const elementsReady = imageReadyKey !== null && (TAKT_MS-restMs(jetzt)) >= 21000;
++    document.getElementById("beschrBefunde").hidden = !elementsReady;
++    const learning = revealed && restMs(jetzt) <= 20000;
++    if(learning) zeigeOverlay();
++    document.getElementById("overlayExamples").hidden = !(learning && document.querySelector("#tafelHuelle img")?.dataset.overlay === "1");
+     if(!revealed && meineAnsicht !== "combined") syncTraining();
+   }else if(meineAnsicht === "bild") syncTraining();
+ 
+   const rest = restMs(jetzt);
++  const cycle = document.getElementById("trainingCycle");
++  if(cycle && meineAnsicht === "combined"){
++    const elapsed = (TAKT_MS-rest)/1000;
++    const phase = elapsed<15 ? 0 : elapsed<40 ? 1 : 2;
++    document.getElementById("cycleFill").style.width = (elapsed/60*100)+"%";
++    cycle.setAttribute("aria-valuenow",Math.floor(elapsed));
++    cycle.setAttribute("aria-valuetext",["Diagnose stellen","Feedback","Lernen"][phase]);
++    cycle.querySelectorAll(".cycle-labels span").forEach((e,i)=>e.classList.toggle("active",i===phase));
++  }
+   const balken = document.getElementById(meineAnsicht === "bild" ? "laufBild" : "laufMeta");
+   if(balken) balken.style.width = ((1 - rest / TAKT_MS) * 100).toFixed(2) + "%";
+   const fuss = document.getElementById(meineAnsicht === "bild" ? "fussBild" : "fussMeta");

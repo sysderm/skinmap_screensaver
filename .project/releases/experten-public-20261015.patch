@@ -1,0 +1,47 @@
+--- a/index.html
++++ b/index.html
+@@ -240,7 +240,7 @@
+   <div class="lauf"><i id="laufMeta"></i></div>
+ </section>
+ 
+-<a class="lab-link" id="autorLink" target="_blank" rel="noopener">by Alexander Navarini</a>
++<a class="lab-link" id="autorLink" target="_blank" rel="noopener">Prof. Navarini</a>
+ 
+ <script>
+ "use strict";
+@@ -259,7 +259,7 @@
+ const ATLAS = "";                 // Lehrbuchsammlung: nur die lokale Liste, kein Atlas
+ const ATLAS_FILTER = "";          // optional, SQL-Bedingung, z. B. "modality = 'clinical'"
+ const DERMOSCOPY_ONLY = true;
+-const LINKEDIN_URL = "https://www.linkedin.com/in/alexander-navarini-97a6525b/";         // Adresse des LinkedIn-Profils; leer = „by Alexander Navarini“ ohne Link
++const LINKEDIN_URL = "https://ch.linkedin.com/in/alexandernavarini";         // Adresse des LinkedIn-Profils; leer = „by Alexander Navarini“ ohne Link
+ { const a = document.getElementById("autorLink");
+   try{ const u = new URL(LINKEDIN_URL); if(a && u.protocol === "https:" && (u.hostname === "linkedin.com" || u.hostname.endsWith(".linkedin.com"))) a.href = u.href; }catch(e){} }
+ const DIAGNOSIS_DELAY_MS = 15000;
+@@ -269,7 +269,7 @@
+ let reviewed = new Set();
+ let route = [], mapPoints = [];
+ const DATEN = "./experten/vitrine.json";
+-const DATEN_OPTIONAL = ["./derm7pt/vitrine.json"];   // nur auf dem geschützten Host vorhanden (Derm7pt darf nicht weiterverteilt werden)
++const DATEN_OPTIONAL = [];   // nur auf dem geschützten Host vorhanden (Derm7pt darf nicht weiterverteilt werden)
+ const TAKT_MS = 60000;            // eine Minute, an der Wanduhr ausgerichtet
+ const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme wählen gleich
+ const NACHLADEN_MS = 10 * 60000;  // Liste erneut holen, ohne die iPads anzufassen
+@@ -871,7 +871,7 @@
+   if(!e || !e.overlay || !img || img.dataset.overlay) return;
+   img.dataset.overlay = "1";
+   const o = new Image();
+-  o.onload = () => { if(angezeigt && angezeigt.eintrag === e && img.isConnected) img.src = e.overlay; };
++  o.onload = () => { if(angezeigt && angezeigt.eintrag === e && img.isConnected) { img.onload = null; img.src = e.overlay; } };
+   o.src = e.overlay;
+ }
+ 
+@@ -944,7 +944,7 @@
+     const d = document.createElement("div"); d.className = "feld";
+     const dt = document.createElement("dt"); dt.textContent = meineAnsicht === "combined" ? ({fitz:"Hauttyp",region:"Lokalisation",alter:"Alter"}[schluessel] || k) : k;
+     const dd = document.createElement("dd"); dd.textContent = displayText(v);
+-    if(v !== "—" && geschaetzt.includes(schluessel)){
++    if(schluessel !== "fitz" && v !== "—" && geschaetzt.includes(schluessel)){
+       const m = document.createElement("span");
+       m.className = "schaetzung"; m.textContent = "Modell";
+       m.title = "vom SkinMap-Modell geschätzt, nicht erhoben";

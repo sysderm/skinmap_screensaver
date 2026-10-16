@@ -1,8 +1,8 @@
 "use strict";
 const fs = require("node:fs"), vm = require("node:vm"), assert = require("node:assert/strict");
 const html = fs.readFileSync(require("node:path").join(__dirname, "../index.html"), "utf8");
-const script = html.split('<script>')[1].split('</script>')[0].split('document.addEventListener("visibilitychange"')[0];
-const context = vm.createContext({location:{search:"",hash:"",hostname:"localhost"},URLSearchParams,URL,AbortController,setTimeout,clearTimeout});
+const script = html.replace(/const ATLAS = "[^"]*";/, 'const ATLAS = "https://skinmap.ngrok.io";').split('<script>')[1].split('</script>')[0].split('document.addEventListener("visibilitychange"')[0];
+const context = vm.createContext({location:{search:"",hash:"",hostname:"localhost"},URLSearchParams,URL,AbortController,setTimeout,clearTimeout,document:{getElementById:()=>null}});
 vm.runInContext(script,context);
 const run = code => vm.runInContext(code,context);
 assert.equal(run(`normalisiere({bilder:[

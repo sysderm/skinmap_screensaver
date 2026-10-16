@@ -1,3 +1,72 @@
+# Public expert collection deployment — 2026-10-15
+
+- User requested the GitHub images publicly on dermatoskopie.ch, one screen,
+  with description and the exact bottom-right footer “Prof. Navarini”.
+- Released lehrbuch-sammlung commit a0086d647e4693b6c50ba62ca6e6cfc7eb05a937
+  using its public builder and only experten/ (1088 ISIC entries). Derm7pt
+  excluded from files and optional fetches. Local application edits preserved.
+- Reproducible source adjustments: .project/releases/experten-public-20261015.patch.
+  Retained previously verified LinkedIn URL and omission of skin-type model label.
+- Fixed overlay loading restarting the diagnosis timer: detach the original
+  onload handler when switching to the decoded overlay. Browser regression
+  checks the reveal deadline remains unchanged after overlay loading.
+- All entry descriptions, image/overlay paths, licenses and adult/unknown ages
+  validated. Local and public Chromium checks passed: combined view, description,
+  exact footer, 15s boundary, overlay timer, next-image reset, four viewport sizes.
+- Root/www HTTPS 200 and HTML SHA-256 verified:
+  17182d9ee3632fb36b09320c517d6de7076c635fb3f689d3e4bcde0c4241ff40.
+  Derm7pt list and private readiness endpoint independently return 404 on both.
+- Previous public directory backed up on server before atomic HTML replacement.
+  Existing open screens require reload; physical display not tested.
+- Verification note: Python HTTP client received Cloudflare 403; Chromium
+  independently verified both hosts successfully. macOS tar xattrs produced
+  benign Linux warnings; future release archives should omit extended attributes.
+
+# Author footer — 2026-10-15
+
+- Replaced the public footer with exact text “by Alexander Navarini” linked to
+  https://ch.linkedin.com/in/alexandernavarini (verified public profile).
+- Combined browser regression passes; root and www deployed HTML hashes match
+  the local build, and public HTML contains the exact requested link/text.
+- Previous HTML preserved on the server before atomic replacement.
+
+# Image dataset caption — 2026-10-15
+
+- Added source dataset in small print beneath the loaded image in the active
+  single-screen view; ISIC identifiers retain uppercase and year formatting.
+- Caption updates with the decoded image; holding, failed and absent images
+  clear it. No dataset attribution is invented when metadata is absent.
+- Caption reserves space below the image; landscape and portrait geometry,
+  missing captions, diagnosis timing/filter and model marker checks pass.
+- Public HTML matches the local build hash after atomic deployment.
+- Image processing remains browser interpolation. User asked about faster
+  upscaling; no AI upscaler or modified clinical image was introduced.
+
+# Single-screen operation and diagnosis filter — 2026-10-15
+
+- User selected dermatoskopie.ch as the sole active single-screen display.
+- Former two-screen source and operating documents preserved in archive/two-screen/;
+  legacy services require explicit Compose profile archived-two-screen.
+- Specific diagnosis required in Atlas SQL, fallback normalization and final
+  rendering. Generic benign/malignant and empty/unknown labels are excluded;
+  specific ICD text is used when condition is generic. Named diagnoses containing
+  benign/malignant remain eligible. Empty fallback sequence shows holding screen.
+- Synthetic diagnosis and modality checks and combined browser timing/layout
+  check pass. Browser runtime required explicit existing Chromium executable.
+- Deployed public-combined/index.html atomically; root and www HTTPS contents
+  match the local build hash. Live Chromium check confirms decoded dermoscopy,
+  a specific diagnosis, delayed reveal, three metadata fields and DuckDB filter
+  semantics against synthetic rows (including nulls and whitespace).
+- Removed the visible Modell marker only for skin type at user request; estimate
+  provenance remains available internally. Synthetic rendering confirms age and
+  localization markers remain.
+- Legacy containers skinmap-screensaver and skinmap-display-ready stopped;
+  skinmap-combined running. Default Compose services contain only combined.
+  Legacy sm1/sm2 return 404. Previous files and compose configuration preserved
+  on the server under archive/two-screen-20261015/.
+- Existing open screens must reload once to receive the updated application.
+  Physical device interaction was not tested; public browser verification passed.
+
 # Public DNS cutover — 2026-10-14
 
 - Cloudflare root CNAME to the unavailable tunnel replaced with proxied A

@@ -1,5 +1,6 @@
 services:
   skinmap-display-ready:
+    profiles: [archived-two-screen]
     image: python:3.12-alpine
     container_name: skinmap-display-ready
     restart: unless-stopped
@@ -11,6 +12,7 @@ services:
     labels:
       - traefik.enable=false
   skinmap-screensaver:
+    profiles: [archived-two-screen]
     image: nginx:alpine
     container_name: skinmap-screensaver
     restart: unless-stopped

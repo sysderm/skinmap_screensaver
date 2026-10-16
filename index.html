@@ -100,6 +100,34 @@ ol{margin:0;padding-left:1.3em;color:var(--leise);line-height:1.8}
 ol b{color:var(--schrift);font-weight:600}
 .hinweis{border-left:2px solid var(--akzent);padding:2px 0 2px 14px;color:var(--leise);line-height:1.65}
 #tafel img{image-rendering:auto;max-width:none;max-height:none}
+.image-tools{display:none;position:absolute;bottom:0;left:0;right:0;box-sizing:border-box;padding:7px 14px;align-items:center;justify-content:center;gap:14px;background:#070d16}
+body.combined #tafel:not(.is-holding) .image-tools{display:flex}
+body.combined #tafel.mit-text .image-tools{position:relative;flex:none}
+body.combined #tafel:not(.mit-text) .huelle{bottom:38px}
+body.combined #tafel .huelle{cursor:pointer}
+.image-dataset{margin:0;min-width:0;font-size:clamp(11px,1vw,15px);line-height:1.3;color:var(--leise);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.image-quality{display:flex;flex:none;border:1px solid var(--linie);border-radius:5px;overflow:hidden}
+.image-quality button{font:12px var(--sans);padding:4px 9px;background:transparent;color:var(--leise);border:0;cursor:pointer}
+.image-quality button[aria-pressed="true"]{color:var(--schrift);background:var(--flaeche)}
+.image-quality button:disabled{opacity:.4;cursor:default}
+/* Beschreibung unter dem Bild: das Bild rückt nach oben, der Text bekommt den unteren Teil. */
+/* Das Bild bekommt allen Platz, den der Text nicht braucht, und wird nie beschnitten (object-fit:contain). */
+#tafel.mit-text{display:flex;flex-direction:column;place-items:stretch}
+#tafel.mit-text .huelle{position:relative;inset:auto;flex:1 1 0;min-height:0;width:100%}
+#tafel.mit-text .huelle img,#tafel.mit-text .huelle canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#beschr{position:relative;flex:none;max-height:42%;width:100%;box-sizing:border-box;overflow:hidden;
+  padding:clamp(10px,1.6vh,24px) clamp(16px,2.4vw,48px) clamp(22px,3.2vh,44px);background:var(--grund);border-top:1px solid var(--linie);
+  display:flex;flex-direction:column;gap:1.2vh}
+#beschr .ai{margin:0;display:flex;align-items:center;gap:.45em;font-size:clamp(11px,1.5vh,24px);font-weight:600;color:var(--warn)}
+#beschr .ai svg{flex:none}
+#beschr .bt{margin:0;font-size:clamp(15px,2.1vh,36px);line-height:1.34;color:var(--schrift)}
+#beschr .bf{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:.4vh 2vw;
+  font-size:clamp(12px,1.6vh,27px);line-height:1.28;color:var(--leise);border-top:1px solid var(--linie);padding-top:1vh}
+#beschr .bf b{font-weight:600;color:var(--akzent)}
+#beschr .bf .sw{display:inline-block;width:.8em;height:.8em;border-radius:2px;margin-right:.5em;vertical-align:-.05em}
+#beschr .qu{margin:0;font-size:clamp(10px,1.3vh,20px);color:var(--leise)}
+#tafel.is-holding #beschr{display:none}
+@media(orientation:portrait){#beschr{max-height:46%}#beschr .bt{font-size:clamp(13px,1.7vh,30px)}#beschr .bf{font-size:clamp(11px,1.3vh,22px)}}
 #tafel .holding{padding:6vw;text-align:center;font-size:clamp(24px,4vw,64px);line-height:1.3}
 .skinmap-brand{display:flex;align-items:center;justify-content:center;gap:3vw;font-size:clamp(48px,12vw,220px);font-weight:600}
 .skinmap-brand img{width:clamp(100px,22vw,380px);height:auto;object-fit:contain}
@@ -143,9 +171,26 @@ body.combined .nr,body.combined .marke,body.combined .fuss,body.combined #laufMe
 body.combined #karte.awaiting-diagnosis .felder{visibility:visible}
 .lab-link{display:none}
 body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;font-size:clamp(16px,1.6vw,26px);text-decoration:none}
-@media(orientation:portrait){body.combined #tafel{right:0;bottom:48%}body.combined #karte{left:0;top:52%;gap:2vh}body.combined .felder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}body.combined .brand-small img{width:40px;height:40px}}
+@media(orientation:portrait){body.combined #tafel{right:0;bottom:30%}body.combined #karte{left:0;top:70%;gap:2vh}body.combined .felder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}body.combined .brand-small img{width:40px;height:40px}}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* One-minute training cycle: three equal 20-second stages. */
+body.combined #tafel{bottom:90px}
+body.combined #karte{padding-bottom:110px}
+#trainingCycle{display:none}
+body.combined #trainingCycle{display:block;position:fixed;left:2.2vw;right:max(240px,20vw);bottom:20px;z-index:5}
+.cycle-labels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px;font-size:clamp(12px,1.1vw,20px);color:var(--leise)}
+.cycle-labels span{white-space:nowrap;opacity:.6}
+.cycle-labels .active{opacity:1;color:var(--schrift);font-weight:600}
+.cycle-track{height:8px;background:var(--linie);border-radius:8px;overflow:hidden;position:relative}
+.cycle-fill{height:100%;width:0;background:linear-gradient(90deg,#6f9caa 0%,#90b6aa 65%,#c5ba85 100%);transition:width .25s linear}
+.cycle-track:before,.cycle-track:after{content:"";position:absolute;top:0;bottom:0;width:2px;background:var(--grund);z-index:1}
+.cycle-track:before{left:33.3333%}.cycle-track:after{left:66.6667%}
+.skinmap-reference{display:none}
+body.combined .skinmap-reference{display:block;color:var(--leise);font-size:clamp(11px,1vw,15px);margin-top:auto;padding-top:8px;text-decoration:none}
+@media(orientation:portrait){body.combined #tafel{bottom:36%}body.combined #karte{top:64%;padding-bottom:125px}body.combined #trainingCycle{right:2.2vw;bottom:20px}body.combined .lab-link{bottom:87px}}
+
 </style>
 </head>
 <body>
@@ -190,6 +235,14 @@ body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;fon
 
 <section id="tafel" hidden>
   <div class="huelle" id="tafelHuelle"></div>
+  <div class="image-tools">
+    <p class="image-dataset" id="imageDataset" hidden></p>
+    <div class="image-quality" role="group" aria-label="Image quality">
+      <button id="realImage" type="button" aria-pressed="true">Real</button>
+      <button id="upscaledImage" type="button" aria-pressed="false" disabled title="AI upscaling is not yet available for this image">Upscaled</button>
+    </div>
+  </div>
+  <div id="beschr" hidden><p class="bt" id="beschrText"></p><ul class="bf" id="beschrBefunde" hidden></ul><p class="qu" id="overlayExamples" hidden>Markierungen sind Beispiele.</p><p class="ai" id="beschrHinweis" role="note" hidden><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" aria-hidden="true"><path d="M12 2.8 22.2 20.5H1.8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9.5v5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.15" fill="currentColor"/></svg><span id="beschrHinweisText"></span></p><p class="qu" id="beschrQuelle"></p></div>
   <div class="fuss">
     <span class="marke" id="markeBild" hidden>Beispieldaten</span>
     <span id="fussBild"></span>
@@ -217,12 +270,17 @@ body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;fon
     </div>
   </div>
   <div class="quelle" id="quelle"></div>
+  <a class="skinmap-reference" href="https://arxiv.org/abs/2601.00840" target="_blank" rel="noopener">SkinMap · Gröger et al. · arXiv</a>
   <div class="fuss"><span></span><span id="fussMeta"></span></div>
   <div class="lauf"><i id="laufMeta"></i></div>
 </section>
 
-<a class="lab-link" href="https://navarinilab.com/" target="_blank" rel="noopener">navarinilab.com ↗</a>
+<a class="lab-link" id="autorLink" target="_blank" rel="noopener">Prof. Navarini</a>
 
+<div id="trainingCycle" role="progressbar" aria-label="Trainingsminute" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0">
+  <div class="cycle-labels"><span>Diagnose stellen</span><span>Feedback</span><span>Lernen</span></div>
+  <div class="cycle-track"><div class="cycle-fill" id="cycleFill"></div></div>
+</div>
 <script>
 "use strict";
 
@@ -237,16 +295,20 @@ body.combined .lab-link{display:block;position:fixed;right:2.2vw;bottom:20px;fon
    DATEN: Ersatzliste, wenn der Atlas nicht antwortet. Liegt sie neben dieser
    Datei (empfohlen), bleibt es bei "./vitrine.json" — gleicher Host, kein CORS.
 ============================================================================ */
-const ATLAS = "https://skinmap.ngrok.io";
+const ATLAS = "";                 // Lehrbuchsammlung: nur die lokale Liste, kein Atlas
 const ATLAS_FILTER = "";          // optional, SQL-Bedingung, z. B. "modality = 'clinical'"
 const DERMOSCOPY_ONLY = true;
-const DIAGNOSIS_DELAY_MS = 15000;
+const LINKEDIN_URL = "https://ch.linkedin.com/in/alexandernavarini";         // Adresse des LinkedIn-Profils; leer = „by Alexander Navarini“ ohne Link
+{ const a = document.getElementById("autorLink");
+  try{ const u = new URL(LINKEDIN_URL); if(a && u.protocol === "https:" && (u.hostname === "linkedin.com" || u.hostname.endsWith(".linkedin.com"))) a.href = u.href; }catch(e){} }
+const DIAGNOSIS_DELAY_MS = 20000;
 const OFFICE_REVIEW_REQUIRED = false;
 const REVIEW_FILE = "./office-review.json";
 const WALK_MODE = new URLSearchParams(location.search).get("mode") !== "random";
 let reviewed = new Set();
 let route = [], mapPoints = [];
-const DATEN = "./vitrine.json";
+const DATEN = "./experten/vitrine.json";
+const DATEN_OPTIONAL = [];   // nur auf dem geschützten Host vorhanden (Derm7pt darf nicht weiterverteilt werden)
 const TAKT_MS = 60000;            // eine Minute, an der Wanduhr ausgerichtet
 const MISCHUNG_SAAT = 20261007;   // feste Saat -> beide Schirme wählen gleich
 const NACHLADEN_MS = 10 * 60000;  // Liste erneut holen, ohne die iPads anzufassen
@@ -295,17 +357,28 @@ const BEISPIELE = [
    #bild / #meta überschreibt das (Vorschau, Test, anderer Hostname).
 --------------------------------------------------------------------------- */
 function ansicht(){
+  /* Standard auf jedem Host: Ein-Bildschirm-Ansicht. Die Zwei-iPad-Methode (sm1/sm2) ist archiviert
+     und nur noch über #bild bzw. #meta erreichbar. */
   const h = (location.hash || "").replace(/^#/, "").toLowerCase();
-  if(h === "combined" || /^(www\.)?dermatoskopie\.ch$/.test(location.hostname)) return "combined";
   if(h === "bild" || h === "tafel") return "bild";
   if(h === "meta" || h === "karte") return "meta";
-  const host = location.hostname.toLowerCase();
-  if(/^sm1\b|^sm1\./.test(host)) return "bild";
-  if(/^sm2\b|^sm2\./.test(host)) return "meta";
-  return null;
+  return "combined";
 }
 
 /* --------------------------- Takt und Reihenfolge --------------------------- */
+/* Reihenfolge: jedes Bild kommt vor, Diagnosen ausser Naevi aber ANDERE_KOPIEN-mal so oft. Jede Kopie liegt in
+   ihrem eigenen Abschnitt des Durchlaufs, so folgt dasselbe Bild nie dicht auf sich selbst. Beide Schirme rechnen gleich. */
+const ANDERE_KOPIEN = 3;
+const istNaevus = (e) => /n[aä]vus/i.test(e.diagnose || "");
+function gewichtet(liste, saat){
+  const r = zufall(saat), mit = [];
+  for(const e of liste){
+    const n = istNaevus(e) ? 1 : ANDERE_KOPIEN;
+    for(let c = 0; c < n; c++) mit.push({e, k: (c + r()) / n});
+  }
+  return mit.sort((a, b) => a.k - b.k).map(x => x.e);
+}
+
 function zufall(saat){
   let a = saat >>> 0;
   return function(){
@@ -331,7 +404,22 @@ function gemischt(liste, saat){
 }
 const platz = (t) => Math.floor(t / TAKT_MS);
 const restMs = (t) => TAKT_MS - (t % TAKT_MS);
+let manualStart = null, manualBase = 0;
+const selectionSlot = t => meineAnsicht === "combined" && manualStart !== null
+  ? manualBase + Math.floor((t-manualStart)/TAKT_MS) : platz(t);
+const selectionRest = t => meineAnsicht === "combined" && manualStart !== null
+  ? TAKT_MS - ((t-manualStart)%TAKT_MS) : restMs(t);
 
+const GENERISCHE_DIAGNOSEN = ["benign", "malignant", "unknown", "unspecified", "other", "n/a", "none", "null", "ohne beschriftung"];
+function konkreteDiagnose(v){
+  return typeof v === "string" && !!v.trim() && !GENERISCHE_DIAGNOSEN.includes(v.trim().toLowerCase());
+}
+function ersteDiagnose(...werte){return werte.find(konkreteDiagnose)?.trim() || "";}
+function diagnoseBedingung(spalten){
+  const felder=["condition","icd_description"].filter(n=>n in spalten);
+  return felder.length ? "("+felder.map(n=>"(lower(regexp_replace(CAST("+sqlName(n)+
+    " AS VARCHAR), '^\\s+|\\s+$', '', 'g')) NOT IN ('', '"+GENERISCHE_DIAGNOSEN.join("', '")+"'))").join(" OR ")+")" : "FALSE";
+}
 let FOLGE = gemischt(BEISPIELE.filter(unbedenklich), MISCHUNG_SAAT);
 let listeGeladen = false;   // vitrine.json wurde schon einmal erfolgreich geholt
 let echteDaten = false;     // Listeninhalte sind keine Beispieldaten
@@ -339,9 +427,9 @@ let stoerung = "";          // Störung der Liste
 
 function eintragFuer(jetzt){
   if(OFFICE_REVIEW_REQUIRED) return holdingEntry();
-  if(DERMOSCOPY_ONLY && !FOLGE.some(e => e.modality === "dermoscopy")) return holdingEntry();
+  if(!FOLGE.length || (DERMOSCOPY_ONLY && !FOLGE.some(e => e.modality === "dermoscopy"))) return holdingEntry();
   const n = FOLGE.length || 1;
-  const i = ((platz(jetzt) % n) + n) % n;
+  const i = ((selectionSlot(jetzt) % n) + n) % n;
   return {eintrag: FOLGE[i], index: i, anzahl: n};
 }
 
@@ -358,7 +446,7 @@ function normalisiere(rohdaten){
       bild: bild && basis && !/^https?:\/\//i.test(bild)
               ? basis.replace(/\/+$/, "") + "/" + bild.replace(/^\/+/, "")
               : bild,
-      diagnose: e.diagnose || e.condition || "ohne Beschriftung",
+      diagnose: ersteDiagnose(e.diagnose,e.condition,e.icd_description),
       art: e.art || e.subtitel || "",
       fitz: e.fitz || e.fitzpatrick || "",
       region: e.region || e.body_region || "",
@@ -367,7 +455,12 @@ function normalisiere(rohdaten){
       datensatz: e.datensatz || e.dataset || "",
       quelle: e.quelle || e.source || "",
       lizenz: e.lizenz || e.license || "",
-      modality: String(e.modality || "").trim().toLowerCase()
+      modality: String(e.modality || "").trim().toLowerCase(),
+      overlay: String(e.overlay || "").trim(),
+      hinweis: String(e.hinweis || "").trim(),
+      geschaetzt: Array.isArray(e.geschaetzt) ? e.geschaetzt.map(String) : [],
+      beschreibung: String(e.beschreibung || "").trim(),
+      befunde: Array.isArray(e.befunde) ? e.befunde.filter(b => b && b.term).map(b => ({term: String(b.term), ort: String(b.ort || ""), farbe: /^#[0-9a-f]{6}$/i.test(b.farbe || "") ? b.farbe : ""})) : []
     };
   }).filter(e => e.diagnose && unbedenklich(e) && (!DERMOSCOPY_ONLY || e.modality === "dermoscopy"));
   /* "beispiel": true in der Liste hält die Marke "Beispieldaten" sichtbar,
@@ -382,9 +475,15 @@ async function holeListe(){
     const r = await fetch(DATEN + "?t=" + platz(Date.now()),
                           {cache: "no-store", signal: abbruch.signal});
     if(!r.ok) throw new Error("HTTP " + r.status);
-    const {liste, beispiel} = normalisiere(await r.json());
+    let {liste, beispiel} = normalisiere(await r.json());
+    for(const u of DATEN_OPTIONAL){
+      try{
+        const z = await fetch(u + "?t=" + platz(Date.now()), {cache: "no-store", signal: abbruch.signal});
+        if(z.ok && /json/i.test(z.headers.get("content-type") || "")) liste = liste.concat(normalisiere(await z.json()).liste);
+      }catch(e){ /* optionale Liste fehlt: nur die Hauptliste läuft */ }
+    }
     if(!liste.length) throw new Error("Liste ist leer");
-    FOLGE = gemischt(liste, MISCHUNG_SAAT);
+    FOLGE = gewichtet(liste, MISCHUNG_SAAT);
     listeGeladen = true;
     echteDaten = !beispiel;
     stoerung = "";
@@ -565,11 +664,10 @@ async function atlasStart(){
     bild = sqlName(bildSpalte);   // URL, data:-URL oder Base64 als Text
     hatBild = "coalesce(" + sqlName(bildSpalte) + ", '') <> ''";
   }
-  const diag = ["condition", "icd_description"].filter(n => n in spalten);
   const bedingungen = [hatBild];
   if(DERMOSCOPY_ONLY) bedingungen.push("lower(trim(\"modality\")) = 'dermoscopy'");
   if(OFFICE_REVIEW_REQUIRED) bedingungen.push('"_row_index" IN (' + [...reviewed].join(',') + ')');
-  if(diag.length) bedingungen.push("coalesce(" + diag.map(sqlName).join(", ") + ") IS NOT NULL");
+  bedingungen.push(diagnoseBedingung(spalten));
   bedingungen.push(schutzBedingung(spalten));
   if(ATLAS_FILTER.trim()) bedingungen.push("(" + ATLAS_FILTER + ")");
   const [{n}] = await atlasSql('SELECT max("_row_index") + 1 AS n FROM dataset');
@@ -636,7 +734,7 @@ function ausZeile(z){
     const m = erst(...modell); if(m !== null) geschaetzt.push(feld);
     return m;
   };
-  const diag = erst("condition", "icd_description");
+  const diag = ersteDiagnose(z.condition,z.icd_description);
   const icd = erst("icd_description");
   let fitz = mitModell("fitz", ["fitzpatrick", "fitzpatrick_grouped"], ["fitzpatrick_pred", "fitzpatrick_grouped_pred"]);
   if(fitz !== null && /^[1-6](\.0)?$/.test(String(fitz))) fitz = ROEMISCH[parseInt(fitz, 10)];
@@ -647,7 +745,7 @@ function ausZeile(z){
     id: "r" + z._row_index,
     modality: String(z.modality || "").trim().toLowerCase(),
     bild: bildUrl(z.__bild),
-    diagnose: String(diag != null ? diag : "ohne Beschriftung"),
+    diagnose: diag || "ohne Beschriftung",
     art: icd != null && icd !== diag ? String(icd) : "",
     fitz: fitz != null ? String(fitz) : "",
     region: String(mitModell("region", ["body_region", "body_location"], ["body_region_pred"]) ?? ""),
@@ -794,6 +892,7 @@ function markeSetzen(){
 }
 
 function tafelPlatzhalter(eintrag, notiz){
+  bildDatensatz(null);
   const huelle = document.getElementById("tafelHuelle");
   huelle.innerHTML = "";
   const lw = document.createElement("canvas");
@@ -801,15 +900,120 @@ function tafelPlatzhalter(eintrag, notiz){
   requestAnimationFrame(() => zeichneTafel(lw, eintrag, notiz));
 }
 
+function beschreibungSetzen(eintrag){
+  const box = document.getElementById("beschr"), tafel = document.getElementById("tafel");
+  const hat = !!(eintrag && !eintrag.holding && eintrag.beschreibung);
+  box.hidden = !hat; tafel.classList.toggle("mit-text", hat);
+  document.getElementById("beschrBefunde").hidden = true;
+  document.getElementById("overlayExamples").hidden = true;
+  document.getElementById("beschrText").textContent = "";
+  document.getElementById("beschrText").hidden = true;
+  const hw = document.getElementById("beschrHinweis"); hw.hidden = !(hat && eintrag.hinweis);
+  document.getElementById("beschrHinweisText").textContent = hat ? eintrag.hinweis : "";
+  const q = document.getElementById("beschrQuelle");
+  q.textContent = hat ? [eintrag.quelle, eintrag.lizenz, (eintrag.quelle || "").includes(eintrag.datensatz) ? "" : eintrag.datensatz].filter(Boolean).join(" · ") : "";
+  const ul = document.getElementById("beschrBefunde"); ul.replaceChildren();
+  if(hat) for(const b of eintrag.befunde || []){
+    const li = document.createElement("li"), t = document.createElement("b");
+    if(b.farbe){ const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = b.farbe; li.appendChild(sw); }
+    t.textContent = b.term; li.append(t);
+    if(b.ort && !b.farbe) li.append(" — " + b.ort);
+    ul.appendChild(li);
+  }
+}
+
+function bildDatensatz(eintrag){
+  const raw = String(eintrag?.datensatz || "").trim();
+  const name = raw.replace(/^isic[ _-]*(\d{4})?$/i, (_, year) => "ISIC" + (year ? " " + year : ""));
+  const caption = document.getElementById("imageDataset");
+  caption.textContent = name ? "Dataset: " + name : "";
+  caption.title = caption.textContent; caption.hidden = !name;
+}
+
+let preferUpscaled=false, activeUpscaled=false, readyUpscale=null, showingOverlay=false;
+let variantGeneration=0, upscaleBusy=false, upscalePollAt=0;
+function qualityControls(){
+  document.getElementById("realImage").setAttribute("aria-pressed",String(!activeUpscaled));
+  const button=document.getElementById("upscaledImage");
+  button.setAttribute("aria-pressed",String(activeUpscaled));
+  button.disabled=!readyUpscale;
+  button.title=readyUpscale ? "AI-upscaled reconstruction · processed on m5" : "AI upscaling is not yet available for this image";
+}
+function imageSource(entry){return showingOverlay && entry.overlay ? entry.overlay : entry.bild;}
+async function sha256(value){
+  const bytes=typeof value === "string" ? new TextEncoder().encode(value) : value;
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))].map(n=>n.toString(16).padStart(2,"0")).join("");
+}
+function switchQuality(upscaled, preservePreference=false){
+  if(!angezeigt || angezeigt.eintrag.holding || (upscaled && !readyUpscale)) return;
+  if(!preservePreference) preferUpscaled=upscaled;
+  const entry=angezeigt.eintrag, generation=++variantGeneration, overlay=showingOverlay;
+  const img=new Image();img.decoding="async";
+  img.alt=upscaled ? "AI-upscaled dermoscopic image" : "Dermatoskopische Aufnahme";
+  if(overlay) img.dataset.overlay="1";
+  img.onload=()=>{
+    if(generation!==variantGeneration || angezeigt?.eintrag!==entry) return;
+    document.getElementById("tafelHuelle").replaceChildren(img);
+    activeUpscaled=upscaled;qualityControls(); // Preserve the training timer.
+  };
+  img.onerror=()=>{
+    if(generation!==variantGeneration || angezeigt?.eintrag!==entry) return;
+    if(upscaled){readyUpscale=null;switchQuality(false,true);}
+    qualityControls();
+  };
+  img.src=upscaled ? readyUpscale : imageSource(entry);
+}
+async function prepareUpscale(){
+  if(meineAnsicht!=="combined" || upscaleBusy || !angezeigt || angezeigt.eintrag.holding || readyUpscale) return;
+  const entry=angezeigt.eintrag, source=imageSource(entry);
+  if(!source) return;
+  upscaleBusy=true;upscalePollAt=Date.now()+15000;
+  try{
+    const response=await fetch("./upscaled/manifest.json",{cache:"no-store",signal:AbortSignal.timeout(5000)});
+    if(!response.ok) return;
+    const manifest=await response.json();if(manifest.version!==1) return;
+    const candidate=manifest.entries?.[await sha256(source)];
+    if(!candidate || !/^objects\/[a-f0-9]{64}\.webp$/.test(candidate.path) || !/^[a-f0-9]{64}$/.test(candidate.source_sha256)) return;
+    const original=await fetch(source,{cache:"force-cache",signal:AbortSignal.timeout(10000),headers:/ngrok/i.test(source)?{"ngrok-skip-browser-warning":"1"}:{}});
+    if(!original.ok || await sha256(await original.arrayBuffer())!==candidate.source_sha256) return;
+    if(angezeigt?.eintrag!==entry || imageSource(entry)!==source) return;
+    readyUpscale="./upscaled/"+candidate.path;qualityControls();
+    if(preferUpscaled) switchQuality(true,true);
+  }catch(e){ /* Original remains available during worker/network outages. */ }
+  finally{upscaleBusy=false;}
+}
+function advanceImage(){
+  if(meineAnsicht!=="combined" || !angezeigt || angezeigt.eintrag.holding || trainingRevealAt===null) return;
+  const now=Date.now(), elapsed=TAKT_MS-selectionRest(now);
+  manualBase=aktuellerPlatz;
+  if(now<trainingRevealAt || elapsed<20000){manualStart=now-20000;trainingRevealAt=now;}
+  else if(elapsed<40000){manualStart=now-40000;}
+  else{manualBase++;manualStart=now;}
+  tick();
+}
+
+/* Learning stage preserves expert annotations in both image-quality modes. */
+function zeigeOverlay(){
+  const e = angezeigt && angezeigt.eintrag, img = document.querySelector("#tafelHuelle img");
+  if(!e || !e.overlay || !img || showingOverlay) return;
+  showingOverlay=true;readyUpscale=null;activeUpscaled=false;qualityControls();
+  switchQuality(false,true);upscalePollAt=0;prepareUpscale();
+}
+
 function fuellTafel(eintrag){
+  variantGeneration++;readyUpscale=null;activeUpscaled=false;showingOverlay=false;upscalePollAt=0;
+  qualityControls();
   document.getElementById("tafel").classList.toggle("is-holding",!!eintrag.holding);
+  if(eintrag.holding) beschreibungSetzen(null);
   if(eintrag.holding){
+    bildDatensatz(null);
     const text = document.createElement("div"); text.className = "holding skinmap-brand";
     const logo = new Image(); logo.src="./assets/skinmap-logo.png"; logo.alt="";
     const name=document.createElement("span");name.textContent="SkinMap";
     text.append(logo,name);
     document.getElementById("tafelHuelle").replaceChildren(text); return;
   }
+  beschreibungSetzen(eintrag);
   if(!eintrag.bild){ tafelPlatzhalter(eintrag); return; }
   const img = new Image();
   img.decoding = "async";
@@ -819,10 +1023,15 @@ function fuellTafel(eintrag){
     const huelle = document.getElementById("tafelHuelle");
     huelle.innerHTML = "";
     huelle.appendChild(img);
+    bildDatensatz(eintrag);
     imageReadyKey = displayKey();
     trainingPollAt = 0;
-    if(meineAnsicht === "combined") trainingRevealAt = Date.now()+15000;
+    if(meineAnsicht === "combined"){
+      manualBase=aktuellerPlatz;manualStart=Date.now();
+      trainingRevealAt=manualStart+DIAGNOSIS_DELAY_MS;
+    }
     else syncTraining();
+    prepareUpscale();
   };
   /* Ein kaputter Verweis darf auf einem Wandschirm kein Bruchbild zeigen. */
   img.onerror = () => {
@@ -852,6 +1061,8 @@ function fuellKarte(eintrag, index, anzahl){
   document.getElementById("diagnose").textContent = displayText(eintrag.diagnose);
   document.getElementById("unterzeile").textContent = displayText(eintrag.art || "");
   const geschaetzt = eintrag.geschaetzt || [];
+  const reference=document.querySelector(".skinmap-reference");
+  if(reference) reference.textContent=(geschaetzt.length ? "SkinMap-imputierte Werte" : "SkinMap")+" · Gröger et al. · arXiv";
   const alter = eintrag.alter;
   const felder = [
     ["fitz", "Fitzpatrick", eintrag.fitz || "—"],
@@ -868,7 +1079,9 @@ function fuellKarte(eintrag, index, anzahl){
     const d = document.createElement("div"); d.className = "feld";
     const dt = document.createElement("dt"); dt.textContent = meineAnsicht === "combined" ? ({fitz:"Hauttyp",region:"Lokalisation",alter:"Alter"}[schluessel] || k) : k;
     const dd = document.createElement("dd"); dd.textContent = displayText(v);
-    if(v !== "—" && geschaetzt.includes(schluessel)){
+    dd.dataset.provenance=geschaetzt.includes(schluessel) ? "SkinMap-imputed" : "recorded";
+    if(geschaetzt.includes(schluessel)) dd.title="Von SkinMap imputiert";
+    if(schluessel !== "fitz" && v !== "—" && geschaetzt.includes(schluessel)){
       const m = document.createElement("span");
       m.className = "schaetzung"; m.textContent = "Modell";
       m.title = "vom SkinMap-Modell geschätzt, nicht erhoben";
@@ -891,6 +1104,7 @@ function aktuelleStoerung(){
 }
 
 function rendere(r){
+  if(!r.eintrag.holding && !konkreteDiagnose(r.eintrag.diagnose)) r=holdingEntry();
   if(!unbedenklich(r.eintrag)) r = holdingEntry();
   if(DERMOSCOPY_ONLY && !r.eintrag.holding && r.eintrag.modality !== "dermoscopy") r = holdingEntry();
   if(OFFICE_REVIEW_REQUIRED && !r.eintrag.holding && !reviewed.has(r.index)) r = holdingEntry();
@@ -953,7 +1167,7 @@ function zeigeAtlas(p){
 
 function tick(){
   const jetzt = Date.now();
-  const p = platz(jetzt);
+  const p = selectionSlot(jetzt);
   if(p !== aktuellerPlatz){
     trainingRevealAt = null;
     document.getElementById("karte").classList.add("awaiting-diagnosis");
@@ -967,14 +1181,29 @@ function tick(){
       if(meineAnsicht === "bild") naechstesVorladen(jetzt);
     }
   }
-  if(quelle === "atlas" && restMs(jetzt) < VORLAUF_MS) holeFuer(p + 1);
+  if(quelle === "atlas" && selectionRest(jetzt) < VORLAUF_MS) holeFuer(p + 1);
+  if(meineAnsicht === "combined" && jetzt>=upscalePollAt) prepareUpscale();
   if(meineAnsicht === "meta" || meineAnsicht === "combined"){
     const revealed = trainingRevealAt !== null && jetzt>=trainingRevealAt;
     document.getElementById("karte").classList.toggle("awaiting-diagnosis",!revealed);
+    const elementsReady = imageReadyKey !== null && (TAKT_MS-selectionRest(jetzt)) >= DIAGNOSIS_DELAY_MS;
+    document.getElementById("beschrBefunde").hidden = !elementsReady;
+    const learning = revealed && selectionRest(jetzt) <= 20000;
+    if(learning) zeigeOverlay();
+    document.getElementById("overlayExamples").hidden = !(learning && document.querySelector("#tafelHuelle img")?.dataset.overlay === "1");
     if(!revealed && meineAnsicht !== "combined") syncTraining();
   }else if(meineAnsicht === "bild") syncTraining();
 
-  const rest = restMs(jetzt);
+  const rest = selectionRest(jetzt);
+  const cycle = document.getElementById("trainingCycle");
+  if(cycle && meineAnsicht === "combined"){
+    const elapsed = (TAKT_MS-rest)/1000;
+    const phase = elapsed<20 ? 0 : elapsed<40 ? 1 : 2;
+    document.getElementById("cycleFill").style.width = (elapsed/60*100)+"%";
+    cycle.setAttribute("aria-valuenow",Math.floor(elapsed));
+    cycle.setAttribute("aria-valuetext",["Diagnose stellen","Feedback","Lernen"][phase]);
+    cycle.querySelectorAll(".cycle-labels span").forEach((e,i)=>e.classList.toggle("active",i===phase));
+  }
   const balken = document.getElementById(meineAnsicht === "bild" ? "laufBild" : "laufMeta");
   if(balken) balken.style.width = ((1 - rest / TAKT_MS) * 100).toFixed(2) + "%";
   const fuss = document.getElementById(meineAnsicht === "bild" ? "fussBild" : "fussMeta");
@@ -997,6 +1226,15 @@ async function wachHalten(){
 let taktgeber = null, nachlader = null;
 async function starte(){
   meineAnsicht = ansicht();
+  manualStart=null;
+  const imageArea=document.getElementById("tafelHuelle");
+  imageArea.onclick=advanceImage;
+  imageArea.tabIndex=0;imageArea.setAttribute("role","button");
+  imageArea.setAttribute("aria-label","Next training stage or image");
+  imageArea.title="Click to advance to the next stage or image";
+  imageArea.onkeydown=event=>{if(event.key==="Enter" || event.key===" "){event.preventDefault();advanceImage();}};
+  document.getElementById("realImage").onclick=()=>switchQuality(false);
+  document.getElementById("upscaledImage").onclick=()=>switchQuality(true);
   document.body.classList.toggle("combined",meineAnsicht === "combined");
   if(taktgeber){ clearInterval(taktgeber); taktgeber = null; }
   if(nachlader){ clearInterval(nachlader); nachlader = null; }
